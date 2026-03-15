@@ -1,0 +1,61 @@
+import { BackgroundTone, CameraControlMode, InterLayerCollisionMode, ParticleTone, RenderQuality } from './scene';
+
+export interface ParticleConfigCore {
+  viewMode: 'perspective' | 'orthographic';
+  cameraControlMode: CameraControlMode;
+  renderQuality: RenderQuality;
+  rotationSpeedX: number;
+  rotationSpeedY: number;
+  manualRotationX: number;
+  manualRotationY: number;
+  manualRotationZ: number;
+
+  perspective: number;
+  cameraDistance: number;
+  cameraImpulseStrength: number;
+  cameraImpulseSpeed: number;
+  cameraImpulseDrift: number;
+  cameraBurstBoost: number;
+
+  opacity: number;
+  contrast: number;
+  particleSoftness: number;
+  particleGlow: number;
+  screenScanlineIntensity: number;
+  screenScanlineDensity: number;
+  screenNoiseIntensity: number;
+  screenVignetteIntensity: number;
+  screenPulseIntensity: number;
+  screenPulseSpeed: number;
+  screenImpactFlashIntensity: number;
+  screenBurstDrive: number;
+  screenBurstNoiseBoost: number;
+  screenBurstFlashBoost: number;
+  screenInterferenceIntensity: number;
+  screenPersistenceIntensity: number;
+  screenPersistenceLayers: number;
+  screenSplitIntensity: number;
+  screenSplitOffset: number;
+  screenSweepIntensity: number;
+  screenSweepSpeed: number;
+  screenSequenceDriveEnabled: boolean;
+  screenSequenceDriveStrength: number;
+  interLayerCollisionEnabled: boolean;
+  interLayerCollisionStrength: number;
+  interLayerCollisionPadding: number;
+  interLayerCollisionMode: InterLayerCollisionMode;
+  interLayerAudioReactive: boolean;
+  interLayerAudioBoost: number;
+  interLayerContactFxEnabled: boolean;
+  interLayerContactGlowBoost: number;
+  interLayerContactSizeBoost: number;
+  interLayerContactLineBoost: number;
+  interLayerContactScreenBoost: number;
+  particleColor: ParticleTone;
+  backgroundColor: BackgroundTone;
+  depthFogEnabled: boolean;
+  depthFogNear: number;
+  depthFogFar: number;
+  exportScale: number;
+  exportTransparent: boolean;
+}
