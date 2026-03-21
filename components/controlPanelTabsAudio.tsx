@@ -126,8 +126,22 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
         </div>
       </>
     )}
+    <div className="mb-4 rounded border border-white/10 bg-black/10 px-3 py-2 text-[10px] uppercase tracking-widest text-white/55">
+      Input Gain
+    </div>
     <Slider label={audioSourceMode === 'microphone' ? 'Mic Sensitivity' : 'Analysis Sensitivity'} value={config.audioSensitivity} min={0.1} max={5} step={0.1} onChange={(v) => updateConfig('audioSensitivity', v)} />
-    <Slider label="Bass -> Amplitude/Size" value={config.audioBeatScale} min={0} max={2} step={0.1} onChange={(v) => updateConfig('audioBeatScale', v)} />
-    <Slider label="Treble -> Noise/Speed" value={config.audioJitterScale} min={0} max={2} step={0.1} onChange={(v) => updateConfig('audioJitterScale', v)} />
+    <Slider label="Bass Input Gain" value={config.audioBeatScale} min={0} max={3} step={0.1} onChange={(v) => updateConfig('audioBeatScale', v)} />
+    <Slider label="Treble Input Gain" value={config.audioJitterScale} min={0} max={3} step={0.1} onChange={(v) => updateConfig('audioJitterScale', v)} />
+    <div className="mb-4 mt-4 rounded border border-white/10 bg-black/10 px-3 py-2 text-[10px] uppercase tracking-widest text-white/55">
+      Reactive Routing
+    </div>
+    <Slider label="Bass -> Motion" value={config.audioBassMotionScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBassMotionScale', v)} />
+    <Slider label="Bass -> Size" value={config.audioBassSizeScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBassSizeScale', v)} />
+    <Slider label="Bass -> Opacity" value={config.audioBassAlphaScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBassAlphaScale', v)} />
+    <Slider label="Treble -> Motion" value={config.audioTrebleMotionScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTrebleMotionScale', v)} />
+    <Slider label="Treble -> Size" value={config.audioTrebleSizeScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTrebleSizeScale', v)} />
+    <Slider label="Treble -> Opacity" value={config.audioTrebleAlphaScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTrebleAlphaScale', v)} />
+    <Slider label="Audio -> Lines" value={config.audioLineScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioLineScale', v)} />
+    <Slider label="Audio -> Camera" value={config.audioCameraScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioCameraScale', v)} />
   </div>
 );

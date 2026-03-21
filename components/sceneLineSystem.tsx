@@ -177,8 +177,10 @@ export const LineSystem: React.FC<{
       ? 1 + contactAmount * config.interLayerContactLineBoost
       : 1;
     mat.uniforms.uTime.value = uniforms.uTime.value;
-    mat.uniforms.uAudioBass.value = uniforms.uAudioBass.value;
-    mat.uniforms.uAudioTreble.value = uniforms.uAudioTreble.value;
+    mat.uniforms.uAudioBassMotion.value = uniforms.uAudioBassMotion.value;
+    mat.uniforms.uAudioTrebleMotion.value = uniforms.uAudioTrebleMotion.value;
+    mat.uniforms.uAudioBassLine.value = uniforms.uAudioBassLine.value;
+    mat.uniforms.uAudioTrebleLine.value = uniforms.uAudioTrebleLine.value;
     mat.uniforms.uConnectDistance.value = connectionDistance;
     mat.uniforms.uOpacity.value = Math.min(1, connectionOpacity * lineImpactBoost);
     mat.uniforms.uLineVelocityGlow.value = layerVelocityGlow;
@@ -245,8 +247,10 @@ export const LineSystem: React.FC<{
           ...uniforms,
           uConnectDistance: { value: 50 },
           uOpacity: { value: 0.2 },
-          uAudioBass: { value: 0 },
-          uAudioTreble: { value: 0 },
+          uAudioBassMotion: { value: 0 },
+          uAudioTrebleMotion: { value: 0 },
+          uAudioBassLine: { value: 0 },
+          uAudioTrebleLine: { value: 0 },
           uLineVelocityGlow: { value: 0 },
           uLineVelocityAlpha: { value: 0 },
           uLineBurstPulse: { value: 0 },

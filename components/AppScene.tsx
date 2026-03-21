@@ -89,7 +89,8 @@ const CameraImpulseRig: React.FC<{
     const t = clock.getElapsedTime();
     const controls = controlsRef.current;
     const impulse = config.cameraImpulseStrength;
-    const burstEnergy = getBurstDriveEnergy(config, t, isPlaying, config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0);
+    const cameraAudioInput = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale * config.audioCameraScale : 0;
+    const burstEnergy = getBurstDriveEnergy(config, t, isPlaying, cameraAudioInput);
     const needsSync =
       !initializedRef.current ||
       isInteractingRef.current ||
@@ -111,7 +112,7 @@ const CameraImpulseRig: React.FC<{
     if (impulse <= 0 && config.cameraBurstBoost <= 0 || isInteractingRef.current) {
       return;
     }
-    const audioBoost = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
+    const audioBoost = cameraAudioInput;
     const strength = impulse * (1 + audioBoost * 0.65) + burstEnergy * config.cameraBurstBoost * 0.55;
     const speed = Math.max(0.05, config.cameraImpulseSpeed) * (isPlaying ? 1 : 0.25);
     const drift = config.cameraImpulseDrift;

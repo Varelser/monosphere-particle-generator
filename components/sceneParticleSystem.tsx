@@ -85,6 +85,14 @@ export const ParticleSystem: React.FC<{
     uGlow: { value: config.particleGlow },
     uAudioBass: { value: 0 },
     uAudioTreble: { value: 0 },
+    uAudioBassMotion: { value: 0 },
+    uAudioTrebleMotion: { value: 0 },
+    uAudioBassSize: { value: 0 },
+    uAudioTrebleSize: { value: 0 },
+    uAudioBassAlpha: { value: 0 },
+    uAudioTrebleAlpha: { value: 0 },
+    uAudioBassLine: { value: 0 },
+    uAudioTrebleLine: { value: 0 },
     uGlobalSpeed: { value: 1.0 },
     uGlobalAmp: { value: 1.0 },
     uGlobalNoiseScale: { value: 1.0 },
@@ -151,12 +159,30 @@ export const ParticleSystem: React.FC<{
     if (!meshRef.current) return;
     const mat = meshRef.current.material as THREE.ShaderMaterial;
     if (isPlaying) mat.uniforms.uTime.value += delta;
+    const bassInput = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
+    const trebleInput = config.audioEnabled ? audioRef.current.treble * config.audioJitterScale : 0;
     if (config.audioEnabled) {
-      mat.uniforms.uAudioBass.value = audioRef.current.bass * config.audioBeatScale;
-      mat.uniforms.uAudioTreble.value = audioRef.current.treble * config.audioJitterScale;
+      mat.uniforms.uAudioBass.value = bassInput;
+      mat.uniforms.uAudioTreble.value = trebleInput;
+      mat.uniforms.uAudioBassMotion.value = bassInput * config.audioBassMotionScale;
+      mat.uniforms.uAudioTrebleMotion.value = trebleInput * config.audioTrebleMotionScale;
+      mat.uniforms.uAudioBassSize.value = bassInput * config.audioBassSizeScale;
+      mat.uniforms.uAudioTrebleSize.value = trebleInput * config.audioTrebleSizeScale;
+      mat.uniforms.uAudioBassAlpha.value = bassInput * config.audioBassAlphaScale;
+      mat.uniforms.uAudioTrebleAlpha.value = trebleInput * config.audioTrebleAlphaScale;
+      mat.uniforms.uAudioBassLine.value = bassInput * config.audioLineScale;
+      mat.uniforms.uAudioTrebleLine.value = trebleInput * config.audioLineScale;
     } else {
       mat.uniforms.uAudioBass.value = 0;
       mat.uniforms.uAudioTreble.value = 0;
+      mat.uniforms.uAudioBassMotion.value = 0;
+      mat.uniforms.uAudioTrebleMotion.value = 0;
+      mat.uniforms.uAudioBassSize.value = 0;
+      mat.uniforms.uAudioTrebleSize.value = 0;
+      mat.uniforms.uAudioBassAlpha.value = 0;
+      mat.uniforms.uAudioTrebleAlpha.value = 0;
+      mat.uniforms.uAudioBassLine.value = 0;
+      mat.uniforms.uAudioTrebleLine.value = 0;
     }
 
     mat.uniforms.uMouse.value.set(state.pointer.x, state.pointer.y);
@@ -236,7 +262,7 @@ export const ParticleSystem: React.FC<{
     const impactSizeBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled ? 1 + contactAmount * config.interLayerContactSizeBoost : 1;
     mat.uniforms.uGlobalSize.value = size * impactSizeBoost;
     mat.uniforms.uGravity.value = grav; mat.uniforms.uViscosity.value = vis; mat.uniforms.uFluidForce.value = fluid; mat.uniforms.uResistance.value = resistance; mat.uniforms.uMoveWithWind.value = moveWithWind; mat.uniforms.uNeighborForce.value = neighborForce; mat.uniforms.uCollisionMode.value = collisionMode; mat.uniforms.uCollisionRadius.value = collisionRadius; mat.uniforms.uRepulsion.value = repulsion; mat.uniforms.uTrail.value = trail; mat.uniforms.uLife.value = life; mat.uniforms.uLifeSpread.value = lifeSpread; mat.uniforms.uLifeSizeBoost.value = lifeSizeBoost; mat.uniforms.uLifeSizeTaper.value = lifeSizeTaper; mat.uniforms.uBurst.value = burst; mat.uniforms.uBurstPhase.value = burstPhase; mat.uniforms.uBurstMode.value = burstMode; mat.uniforms.uBurstWaveform.value = burstWaveform; mat.uniforms.uBurstSweepSpeed.value = burstSweepSpeed; mat.uniforms.uBurstSweepTilt.value = burstSweepTilt; mat.uniforms.uBurstConeWidth.value = burstConeWidth; mat.uniforms.uEmitterOrbitSpeed.value = emitterOrbitSpeed; mat.uniforms.uEmitterOrbitRadius.value = emitterOrbitRadius; mat.uniforms.uEmitterPulseAmount.value = emitterPulseAmount; mat.uniforms.uTrailDrag.value = trailDrag; mat.uniforms.uTrailTurbulence.value = trailTurbulence; mat.uniforms.uTrailDrift.value = trailDrift; mat.uniforms.uVelocityGlow.value = velocityGlow; mat.uniforms.uVelocityAlpha.value = velocityAlpha; mat.uniforms.uFlickerAmount.value = flickerAmount; mat.uniforms.uFlickerSpeed.value = flickerSpeed; mat.uniforms.uStreak.value = streak; mat.uniforms.uSpriteMode.value = spriteMode; mat.uniforms.uAuxLife.value = auxLife; mat.uniforms.uIsAux.value = isAux ? 1 : 0; mat.uniforms.uAffectPos.value = aff; mat.uniforms.uMouseForce.value = mf; mat.uniforms.uMouseRadius.value = mr; mat.uniforms.uWind.value.copy(wind); mat.uniforms.uSpin.value.copy(spin); mat.uniforms.uBoundaryY.value = boundY; mat.uniforms.uBoundaryEnabled.value = boundEn; mat.uniforms.uBoundaryBounce.value = boundBn;
-    const collisionAudioBoost = config.interLayerAudioReactive && config.audioEnabled ? 1 + (audioRef.current.bass * config.audioBeatScale * config.interLayerAudioBoost) : 1;
+    const collisionAudioBoost = config.interLayerAudioReactive && config.audioEnabled ? 1 + (bassInput * config.interLayerAudioBoost) : 1;
     mat.uniforms.uInterLayerEnabled.value = config.interLayerCollisionEnabled && layerIndex <= 3 && !isAux ? 1 : 0;
     mat.uniforms.uInterLayerColliderCount.value = activeInterLayerColliderCount;
     interLayerColliders.forEach((collider, colliderIndex) => {

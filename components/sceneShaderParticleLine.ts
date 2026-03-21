@@ -15,7 +15,7 @@ export const LINE_VERTEX_SHADER = `
     uniform float uCollisionMode; uniform float uCollisionRadius; uniform float uRepulsion;
   uniform float uAffectPos; uniform vec2 uMouse; uniform float uMouseForce;
   uniform float uMouseRadius; uniform float uIsOrthographic;
-  uniform float uAudioBass; uniform float uAudioTreble;
+  uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine;
   uniform float uInterLayerEnabled; uniform int uInterLayerColliderCount; uniform vec4 uInterLayerColliders[MAX_INTER_LAYER_COLLIDERS]; uniform float uInterLayerStrength; uniform float uInterLayerPadding;
   uniform float uConnectDistance;
   uniform float uOpacity;
@@ -49,9 +49,9 @@ export const LINE_VERTEX_SHADER = `
     float aBaseRadiusFactor = d1.w; float aSpeedFactor = d2.x; float aAmpFactor = d2.y;
     float aFreqFactor = d2.z; float aSizeFactor = d2.w;
     float radius = aBaseRadiusFactor * uGlobalRadius;
-    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTreble * 3.2);
-    float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBass * 1.35);
-    float trebleJitterMix = 1.0 + uAudioTreble * 1.8;
+    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTrebleMotion * 3.2);
+    float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBassMotion * 1.35);
+    float trebleJitterMix = 1.0 + uAudioTrebleMotion * 1.8;
     float freq = aFreqFactor * uGlobalFreq * trebleJitterMix;
     float noiseScale = uGlobalNoiseScale * trebleJitterMix;
     float complexity = uGlobalComplexity * mix(1.0, trebleJitterMix, 0.6);
@@ -95,7 +95,7 @@ export const LINE_VERTEX_SHADER = `
       float lifeProgressB = fract((uTime * 60.0) / lifeB + aData3B.x + uBurstPhase);
       vBurst = max(getBurstEnvelope(lifeProgressA), getBurstEnvelope(lifeProgressB)) * clamp(uBurst, 0.0, 2.0);
     }
-    float audioLineBoost = 1.0 + uAudioBass * 0.95 + uAudioTreble * 0.45;
+    float audioLineBoost = 1.0 + uAudioBassLine * 0.95 + uAudioTrebleLine * 0.45;
     vAlpha = (1.0 - smoothstep(0.0, uConnectDistance, dist)) * uOpacity * audioLineBoost;
     if (dist > uConnectDistance) vAlpha = 0.0;
     vec3 finalPos = mix(pA, pB, aMix);
