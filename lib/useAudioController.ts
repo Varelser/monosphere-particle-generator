@@ -1,6 +1,6 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import type { AudioSourceMode, ParticleConfig } from '../types';
-import { startAudioLevelMonitoring } from './audioAnalysis';
+import { startAudioLevelMonitoring, type AudioAnalysisOptions } from './audioAnalysis';
 import {
   buildStandaloneSynthUrl,
   createAudioBridgeSessionId,
@@ -27,6 +27,12 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
   const synthEngineRef = useRef<SynthEngine | null>(null);
   const standaloneSynthWindowRef = useRef<Window | null>(null);
   const standaloneSynthSessionIdRef = useRef<string | null>(null);
+  const analysisOptionsRef = useRef<AudioAnalysisOptions>({
+    sensitivity: config.audioSensitivity,
+    gateThreshold: config.audioGateThreshold,
+    responseCurve: config.audioResponseCurve,
+    pulseDecay: config.audioPulseDecay,
+  });
 
   const dismissAudioNotice = useCallback(() => {
     setAudioNotice(null);
@@ -196,16 +202,20 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
   ]);
 
   useEffect(() => {
-    if (!isAudioActive || !analyzerRef.current) {
-      return;
-    }
-    return startAudioLevelMonitoring(analyzerRef, audioRef, {
+    analysisOptionsRef.current = {
       sensitivity: config.audioSensitivity,
       gateThreshold: config.audioGateThreshold,
       responseCurve: config.audioResponseCurve,
       pulseDecay: config.audioPulseDecay,
-    });
-  }, [config.audioGateThreshold, config.audioPulseDecay, config.audioResponseCurve, config.audioSensitivity, isAudioActive]);
+    };
+  }, [config.audioGateThreshold, config.audioPulseDecay, config.audioResponseCurve, config.audioSensitivity]);
+
+  useEffect(() => {
+    if (!isAudioActive || !analyzerRef.current) {
+      return;
+    }
+    return startAudioLevelMonitoring(analyzerRef, audioRef, analysisOptionsRef);
+  }, [isAudioActive]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AnalyzerLike, AudioLevels } from './audioControllerTypes';
 
-type AudioAnalysisOptions = {
+export type AudioAnalysisOptions = {
   sensitivity: number;
   gateThreshold: number;
   responseCurve: number;
@@ -128,7 +128,7 @@ export function createAudioLevelReader(analyzer: AnalyzerLike) {
 export function startAudioLevelMonitoring(
   analyzerRef: React.MutableRefObject<AnalyzerLike | null>,
   audioRef: React.MutableRefObject<AudioLevels>,
-  options: AudioAnalysisOptions,
+  options: AudioAnalysisOptions | React.MutableRefObject<AudioAnalysisOptions>,
 ) {
   const analyzer = analyzerRef.current;
   if (!analyzer) {
@@ -137,9 +137,10 @@ export function startAudioLevelMonitoring(
 
   const readAudioLevels = createAudioLevelReader(analyzer);
   let animationFrame = 0;
+  const getOptions = () => ('current' in options ? options.current : options);
 
   const updateAudio = () => {
-    audioRef.current = readAudioLevels(options, audioRef.current);
+    audioRef.current = readAudioLevels(getOptions(), audioRef.current);
     animationFrame = requestAnimationFrame(updateAudio);
   };
 
