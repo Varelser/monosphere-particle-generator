@@ -94,6 +94,9 @@ export const ParticleSystem: React.FC<{
     uAudioBassLine: { value: 0 },
     uAudioTrebleLine: { value: 0 },
     uAudioPulse: { value: 0 },
+    uAudioTwist: { value: 0 },
+    uAudioBend: { value: 0 },
+    uAudioWarp: { value: 0 },
     uGlobalSpeed: { value: 1.0 },
     uGlobalAmp: { value: 1.0 },
     uGlobalNoiseScale: { value: 1.0 },
@@ -163,6 +166,9 @@ export const ParticleSystem: React.FC<{
     const bassInput = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
     const trebleInput = config.audioEnabled ? audioRef.current.treble * config.audioJitterScale : 0;
     const pulseInput = config.audioEnabled ? audioRef.current.pulse * config.audioPulseScale : 0;
+    const twistInput = config.audioEnabled ? (bassInput * 0.6 + pulseInput * 0.9) * config.audioTwistScale : 0;
+    const bendInput = config.audioEnabled ? (trebleInput * 0.55 + pulseInput * 0.7) * config.audioBendScale : 0;
+    const warpInput = config.audioEnabled ? (bassInput * 0.35 + trebleInput * 0.35 + pulseInput) * config.audioWarpScale : 0;
     if (config.audioEnabled) {
       mat.uniforms.uAudioBass.value = bassInput;
       mat.uniforms.uAudioTreble.value = trebleInput;
@@ -175,6 +181,9 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioBassLine.value = bassInput * config.audioLineScale;
       mat.uniforms.uAudioTrebleLine.value = trebleInput * config.audioLineScale;
       mat.uniforms.uAudioPulse.value = pulseInput;
+      mat.uniforms.uAudioTwist.value = twistInput;
+      mat.uniforms.uAudioBend.value = bendInput;
+      mat.uniforms.uAudioWarp.value = warpInput;
     } else {
       mat.uniforms.uAudioBass.value = 0;
       mat.uniforms.uAudioTreble.value = 0;
@@ -187,6 +196,9 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioBassLine.value = 0;
       mat.uniforms.uAudioTrebleLine.value = 0;
       mat.uniforms.uAudioPulse.value = 0;
+      mat.uniforms.uAudioTwist.value = 0;
+      mat.uniforms.uAudioBend.value = 0;
+      mat.uniforms.uAudioWarp.value = 0;
     }
 
     mat.uniforms.uMouse.value.set(state.pointer.x, state.pointer.y);

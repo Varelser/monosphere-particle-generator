@@ -3,7 +3,7 @@ import { PHYSICS_LOGIC } from './scenePhysicsLogic';
 export const PARTICLE_VERTEX_SHADER = `
   precision highp float;
   ${PHYSICS_LOGIC}
-  uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha; uniform float uAudioPulse;
+  uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha; uniform float uAudioPulse; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
   uniform float uGlobalSpeed; uniform float uGlobalAmp; uniform float uGlobalNoiseScale;
     uniform float uGlobalComplexity;
   uniform float uGlobalEvolution; uniform float uGlobalFidelity; uniform float uGlobalOctaveMult;
@@ -20,6 +20,22 @@ export const PARTICLE_VERTEX_SHADER = `
         uniform float uInterLayerEnabled; uniform int uInterLayerColliderCount; uniform vec4 uInterLayerColliders[MAX_INTER_LAYER_COLLIDERS]; uniform float uInterLayerStrength; uniform float uInterLayerPadding;
   attribute vec3 aPosition; attribute vec3 aOffset; attribute vec4 aData1; attribute vec4 aData2; attribute vec4 aData3;
   varying float vAlpha; varying vec2 vUv; varying float vLife; varying float vVelocity; varying float vSpriteMode; varying float vVariant; varying float vBurst;
+  vec3 applyAudioSpatialWarp(vec3 pos, vec3 origin, float timeValue, float amp, float phase, float variant) {
+    float radiusNorm = clamp(length(pos.xz) / max(1.0, uGlobalRadius), 0.0, 3.0);
+    float heightNorm = pos.y / max(1.0, uGlobalRadius);
+    float twistAngle = uAudioTwist * (0.35 + variant * 0.85) * heightNorm * 2.8;
+    float twistCos = cos(twistAngle);
+    float twistSin = sin(twistAngle);
+    pos.xz = mat2(twistCos, -twistSin, twistSin, twistCos) * pos.xz;
+    float bendWave = sin(timeValue * 2.4 + phase + pos.y * 0.028) + cos(timeValue * 1.7 + phase * 0.7 + pos.x * 0.022);
+    pos.x += bendWave * amp * uAudioBend * (0.08 + radiusNorm * 0.12);
+    pos.z += cos(timeValue * 2.1 - phase + pos.x * 0.025) * amp * uAudioBend * (0.05 + abs(heightNorm) * 0.14);
+    vec3 radialDir = normalize(vec3(pos.x, 0.0, pos.z) + vec3(0.0001));
+    float warpWave = sin(length(pos.xz) * 0.045 - timeValue * 3.1 + phase) * 0.5 + 0.5;
+    pos += radialDir * amp * uAudioWarp * mix(0.02, 0.12, warpWave) * (0.5 + variant * 0.6);
+    pos.y += sin(length(origin.xz) * 0.03 + timeValue * 2.6 + phase) * amp * uAudioWarp * 0.08;
+    return pos;
+  }
   void main() {
     vUv = uv; float aPhase = aData1.x; float aRandom = aData1.y; float aMotionType = aData1.z;
     float aBaseRadiusFactor = aData1.w; float aSpeedFactor = aData2.x; float aAmpFactor = aData2.y;
@@ -81,6 +97,8 @@ export const PARTICLE_VERTEX_SHADER = `
         prevPos = rotate(prevPos, vec3(0,1,0), uSpin.y * prevTime);
         prevPos = rotate(prevPos, vec3(0,0,1), uSpin.z * prevTime);
     }
+    pos = applyAudioSpatialWarp(pos, animatedOffset, uTime, amp, aPhase, aVariant);
+    prevPos = applyAudioSpatialWarp(prevPos, prevAnimatedOffset, prevTime, amp, aPhase, aVariant);
 
     float lifeAlpha = 1.0;
     float lifeProgress = 0.0;

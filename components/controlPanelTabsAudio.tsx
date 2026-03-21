@@ -150,6 +150,9 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
     <Slider label="Pulse -> Particles" value={config.audioPulseScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioPulseScale', v)} />
     <Slider label="Pulse -> Burst" value={config.audioBurstScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBurstScale', v)} />
     <Slider label="Pulse -> Screen FX" value={config.audioScreenScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioScreenScale', v)} />
+    <Slider label="Audio -> Twist" value={config.audioTwistScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTwistScale', v)} />
+    <Slider label="Audio -> Bend" value={config.audioBendScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBendScale', v)} />
+    <Slider label="Audio -> Radial Warp" value={config.audioWarpScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioWarpScale', v)} />
     <Slider label="Audio -> Lines" value={config.audioLineScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioLineScale', v)} />
     <Slider label="Audio -> Camera" value={config.audioCameraScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioCameraScale', v)} />
   </div>

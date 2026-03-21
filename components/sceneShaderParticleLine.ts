@@ -15,7 +15,7 @@ export const LINE_VERTEX_SHADER = `
     uniform float uCollisionMode; uniform float uCollisionRadius; uniform float uRepulsion;
   uniform float uAffectPos; uniform vec2 uMouse; uniform float uMouseForce;
   uniform float uMouseRadius; uniform float uIsOrthographic;
-  uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine; uniform float uAudioPulse;
+  uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine; uniform float uAudioPulse; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
   uniform float uInterLayerEnabled; uniform int uInterLayerColliderCount; uniform vec4 uInterLayerColliders[MAX_INTER_LAYER_COLLIDERS]; uniform float uInterLayerStrength; uniform float uInterLayerPadding;
   uniform float uConnectDistance;
   uniform float uOpacity;
@@ -26,6 +26,22 @@ export const LINE_VERTEX_SHADER = `
   varying float vAlpha;
   varying float vVelocity;
   varying float vBurst;
+  vec3 applyAudioSpatialWarp(vec3 pos, vec3 origin, float timeValue, float amp, float phase, float variant) {
+    float radiusNorm = clamp(length(pos.xz) / max(1.0, uGlobalRadius), 0.0, 3.0);
+    float heightNorm = pos.y / max(1.0, uGlobalRadius);
+    float twistAngle = uAudioTwist * (0.35 + variant * 0.85) * heightNorm * 2.8;
+    float twistCos = cos(twistAngle);
+    float twistSin = sin(twistAngle);
+    pos.xz = mat2(twistCos, -twistSin, twistSin, twistCos) * pos.xz;
+    float bendWave = sin(timeValue * 2.4 + phase + pos.y * 0.028) + cos(timeValue * 1.7 + phase * 0.7 + pos.x * 0.022);
+    pos.x += bendWave * amp * uAudioBend * (0.08 + radiusNorm * 0.12);
+    pos.z += cos(timeValue * 2.1 - phase + pos.x * 0.025) * amp * uAudioBend * (0.05 + abs(heightNorm) * 0.14);
+    vec3 radialDir = normalize(vec3(pos.x, 0.0, pos.z) + vec3(0.0001));
+    float warpWave = sin(length(pos.xz) * 0.045 - timeValue * 3.1 + phase) * 0.5 + 0.5;
+    pos += radialDir * amp * uAudioWarp * mix(0.02, 0.12, warpWave) * (0.5 + variant * 0.6);
+    pos.y += sin(length(origin.xz) * 0.03 + timeValue * 2.6 + phase) * amp * uAudioWarp * 0.08;
+    return pos;
+  }
 
   float getBurstEnvelope(float lifeProgress) {
     float burstEnvelope = 1.0 - smoothstep(0.0, 0.32, lifeProgress);
@@ -44,10 +60,11 @@ export const LINE_VERTEX_SHADER = `
     return burstEnvelope;
   }
 
-  vec3 getPos(vec3 p, vec3 off, vec4 d1, vec4 d2) {
+  vec3 getPos(vec3 p, vec3 off, vec4 d1, vec4 d2, vec4 d3) {
     float aPhase = d1.x; float aRandom = d1.y; float aMotionType = d1.z;
     float aBaseRadiusFactor = d1.w; float aSpeedFactor = d2.x; float aAmpFactor = d2.y;
     float aFreqFactor = d2.z; float aSizeFactor = d2.w;
+    float aVariant = d3.z;
     float radius = aBaseRadiusFactor * uGlobalRadius;
     float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTrebleMotion * 3.2);
     float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBassMotion * 1.35);
@@ -56,7 +73,7 @@ export const LINE_VERTEX_SHADER = `
     float noiseScale = uGlobalNoiseScale * trebleJitterMix;
     float complexity = uGlobalComplexity * mix(1.0, trebleJitterMix, 0.6);
 
-    return calculateLayerPosition(
+    vec3 result = calculateLayerPosition(
       p, off, aMotionType, uTime,
       speed, amp, freq, radius,
       aPhase, aRandom, uWind, noiseScale,
@@ -68,11 +85,12 @@ export const LINE_VERTEX_SHADER = `
       uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
       uInterLayerPadding
     );
+    return applyAudioSpatialWarp(result, off, uTime, amp, aPhase, aVariant);
   }
 
   void main() {
-    vec3 pA = getPos(aPosA, aOffA, aData1A, aData2A);
-    vec3 pB = getPos(aPosB, aOffB, aData1B, aData2B);
+    vec3 pA = getPos(aPosA, aOffA, aData1A, aData2A, aData3A);
+    vec3 pB = getPos(aPosB, aOffB, aData1B, aData2B, aData3B);
     if (length(uSpin) > 0.001) {
       pA = rotate(pA, vec3(1,0,0), uSpin.x * uTime);
       pA = rotate(pA, vec3(0,1,0), uSpin.y * uTime);
