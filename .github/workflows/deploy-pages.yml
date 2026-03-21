@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Build GitHub Pages bundle
-        run: npm run build:github-pages-private
+        run: npm run build:github-pages
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
