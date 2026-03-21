@@ -14,16 +14,30 @@ export function getSupportedVideoMimeType() {
 export function buildRecordingStream(
   canvas: HTMLCanvasElement,
   config: ParticleConfig,
+  microphoneStreamRef: MutableRefObject<MediaStream | null>,
   sharedAudioStreamRef: MutableRefObject<MediaStream | null>,
+  standaloneSynthStreamRef: MutableRefObject<SynthEngine | null>,
   synthEngineRef: MutableRefObject<SynthEngine | null>,
   videoFps: number,
 ) {
   const canvasStream = canvas.captureStream(Math.max(1, videoFps));
   let recordingStream: MediaStream = canvasStream;
 
-  if (config.audioSourceMode === 'internal-synth' && synthEngineRef.current?.mediaDestination) {
+  if (config.audioSourceMode === 'microphone' && microphoneStreamRef.current) {
+    const videoTracks = canvasStream.getVideoTracks();
+    const audioTracks = microphoneStreamRef.current.getAudioTracks().filter((track) => track.readyState === 'live');
+    if (typeof MediaStream !== 'undefined' && audioTracks.length > 0) {
+      recordingStream = new MediaStream([...videoTracks, ...audioTracks]);
+    }
+  } else if (config.audioSourceMode === 'internal-synth' && synthEngineRef.current?.mediaDestination) {
     const videoTracks = canvasStream.getVideoTracks();
     const audioTracks = synthEngineRef.current.mediaDestination.stream.getAudioTracks();
+    if (typeof MediaStream !== 'undefined' && audioTracks.length > 0) {
+      recordingStream = new MediaStream([...videoTracks, ...audioTracks]);
+    }
+  } else if (config.audioSourceMode === 'standalone-synth' && standaloneSynthStreamRef.current?.mediaDestination) {
+    const videoTracks = canvasStream.getVideoTracks();
+    const audioTracks = standaloneSynthStreamRef.current.mediaDestination.stream.getAudioTracks().filter((track) => track.readyState === 'live');
     if (typeof MediaStream !== 'undefined' && audioTracks.length > 0) {
       recordingStream = new MediaStream([...videoTracks, ...audioTracks]);
     }

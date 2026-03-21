@@ -2,6 +2,8 @@ import { MutableRefObject, useCallback, useEffect, useRef, useState } from 'reac
 import * as THREE from 'three';
 import type { ParticleConfig } from '../types';
 import type { Notice, SynthEngine } from './audioControllerTypes';
+import { applySynthSettings, restartSynthSequencer } from './audioSynth';
+import { createSynthEngine, stopSynthEngine } from './audioSynthSource';
 import {
   getSupportedVideoMimeType,
   validateVideoExportTarget,
@@ -20,6 +22,7 @@ type UseVideoExportArgs = {
   sequenceLoopEnabled: boolean;
   sequenceSinglePassDuration: number;
   setSequenceLoopEnabled: (value: boolean) => void;
+  microphoneStreamRef: MutableRefObject<MediaStream | null>;
   sharedAudioStreamRef: MutableRefObject<MediaStream | null>;
   stopSequencePlayback: () => void;
   synthEngineRef: MutableRefObject<SynthEngine | null>;
@@ -36,6 +39,7 @@ export function useVideoExport({
   sequenceLoopEnabled,
   sequenceSinglePassDuration,
   setSequenceLoopEnabled,
+  microphoneStreamRef,
   sharedAudioStreamRef,
   stopSequencePlayback,
   synthEngineRef,
@@ -47,6 +51,7 @@ export function useVideoExport({
   const [videoNotice, setVideoNotice] = useState<Notice | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordingSynthEngineRef = useRef<SynthEngine | null>(null);
   const videoChunksRef = useRef<Blob[]>([]);
   const videoStopTimerRef = useRef<number | null>(null);
   const recordingLoopRestoreRef = useRef<boolean | null>(null);
@@ -77,7 +82,9 @@ export function useVideoExport({
     stopVideoRecorder({
       mediaRecorderRef,
       mediaStreamRef,
+      microphoneStreamRef,
       recordingLoopRestoreRef,
+      recordingSynthEngineRef,
       videoChunksRef,
     }, {
       setIsVideoRecording,
@@ -87,75 +94,86 @@ export function useVideoExport({
   }, [clearVideoStopTimer, setSequenceLoopEnabled, stopSequencePlayback]);
 
   const startVideoRecording = useCallback(() => {
-    const renderer = rendererRef.current;
-    const canvas = renderer?.domElement ?? null;
-    const validationError = validateVideoExportTarget(
-      canvas,
-      presetSequenceLength,
-      sequenceSinglePassDuration,
-      videoDurationSeconds,
-      videoExportMode,
-    );
-    if (validationError) {
-      setVideoNotice({ tone: 'error', message: validationError });
-      return;
-    }
-
-    const targetDuration = videoExportMode === 'sequence'
-      ? sequenceSinglePassDuration
-      : Math.max(0.5, videoDurationSeconds);
-    const mimeType = getSupportedVideoMimeType();
-    if (!canvas) {
-      return;
-    }
-
-    dismissVideoNotice();
-    clearVideoStopTimer();
-    videoChunksRef.current = [];
-    recordingModeRef.current = videoExportMode;
-    recordingLoopRestoreRef.current = sequenceLoopEnabled;
-
-    try {
-      startVideoRecorderSession({
+    void (async () => {
+      const renderer = rendererRef.current;
+      const canvas = renderer?.domElement ?? null;
+      const validationError = validateVideoExportTarget(
         canvas,
-        config,
-        mimeType,
-        refs: {
-          mediaRecorderRef,
-          mediaStreamRef,
-          recordingLoopRestoreRef,
-          videoChunksRef,
-        },
-        setters: {
-          setIsVideoRecording,
-          setSequenceLoopEnabled,
-          setVideoNotice,
-        },
-        sharedAudioStreamRef,
-        stopVideoRecording,
-        synthEngineRef,
+        presetSequenceLength,
+        sequenceSinglePassDuration,
+        videoDurationSeconds,
         videoExportMode,
-        videoFps,
-      });
-
-      if (videoExportMode === 'sequence') {
-        setSequenceLoopEnabled(false);
-        handleStartSequencePlayback();
+      );
+      if (validationError) {
+        setVideoNotice({ tone: 'error', message: validationError });
+        return;
       }
 
-      videoStopTimerRef.current = window.setTimeout(() => {
+      const targetDuration = videoExportMode === 'sequence'
+        ? sequenceSinglePassDuration
+        : Math.max(0.5, videoDurationSeconds);
+      const mimeType = getSupportedVideoMimeType();
+      if (!canvas) {
+        return;
+      }
+
+      dismissVideoNotice();
+      clearVideoStopTimer();
+      videoChunksRef.current = [];
+      recordingModeRef.current = videoExportMode;
+      recordingLoopRestoreRef.current = sequenceLoopEnabled;
+
+      try {
+        if (config.audioSourceMode === 'standalone-synth' && config.audioEnabled) {
+          recordingSynthEngineRef.current = await createSynthEngine(config, { connectToDestination: false });
+        }
+
+        startVideoRecorderSession({
+          canvas,
+          config,
+          mimeType,
+          refs: {
+            mediaRecorderRef,
+            mediaStreamRef,
+            microphoneStreamRef,
+            recordingLoopRestoreRef,
+            recordingSynthEngineRef,
+            videoChunksRef,
+          },
+          setters: {
+            setIsVideoRecording,
+            setSequenceLoopEnabled,
+            setVideoNotice,
+          },
+          sharedAudioStreamRef,
+          stopVideoRecording,
+          synthEngineRef,
+          videoExportMode,
+          videoFps,
+        });
+
+        if (videoExportMode === 'sequence') {
+          setSequenceLoopEnabled(false);
+          handleStartSequencePlayback();
+        }
+
+        videoStopTimerRef.current = window.setTimeout(() => {
+          stopVideoRecording();
+        }, targetDuration * 1000);
+      } catch (error) {
+        console.error('Video recording failed to start:', error);
+        setVideoNotice({ tone: 'error', message: 'Could not start video recording.' });
         stopVideoRecording();
-      }, targetDuration * 1000);
-    } catch (error) {
-      console.error('Video recording failed to start:', error);
-      setVideoNotice({ tone: 'error', message: 'Could not start video recording.' });
-      stopVideoRecording();
-    }
+      }
+    })();
   }, [
     clearVideoStopTimer,
+    config,
     config.audioSourceMode,
+    config.audioEnabled,
     dismissVideoNotice,
     handleStartSequencePlayback,
+    microphoneStreamRef,
     presetSequenceLength,
     rendererRef,
     sequenceLoopEnabled,
@@ -169,6 +187,66 @@ export function useVideoExport({
     videoFps,
   ]);
 
+  useEffect(() => {
+    const recordingSynth = recordingSynthEngineRef.current;
+    if (!recordingSynth || !isVideoRecording) {
+      return;
+    }
+
+    if (config.audioSourceMode === 'standalone-synth' && config.audioEnabled) {
+      return;
+    }
+
+    stopSynthEngine(recordingSynth);
+    void recordingSynth.context.close().catch(() => {});
+    recordingSynthEngineRef.current = null;
+  }, [config.audioEnabled, config.audioSourceMode, isVideoRecording]);
+
+  useEffect(() => {
+    const recordingSynth = recordingSynthEngineRef.current;
+    if (!recordingSynth || !isVideoRecording || config.audioSourceMode !== 'standalone-synth' || !config.audioEnabled) {
+      return;
+    }
+
+    applySynthSettings(recordingSynth, config);
+  }, [
+    config,
+    config.audioEnabled,
+    config.audioSourceMode,
+    config.synthCutoff,
+    config.synthPatternDepth,
+    config.synthVolume,
+    config.synthWaveform,
+    isVideoRecording,
+  ]);
+
+  useEffect(() => {
+    const recordingSynth = recordingSynthEngineRef.current;
+    if (!recordingSynth || !isVideoRecording || config.audioSourceMode !== 'standalone-synth' || !config.audioEnabled) {
+      return;
+    }
+
+    restartSynthSequencer(recordingSynth, config);
+
+    return () => {
+      if (recordingSynth.stepTimer !== null) {
+        window.clearInterval(recordingSynth.stepTimer);
+        recordingSynth.stepTimer = null;
+      }
+    };
+  }, [
+    config,
+    config.audioEnabled,
+    config.audioSourceMode,
+    config.synthBaseFrequency,
+    config.synthCutoff,
+    config.synthPattern,
+    config.synthPatternDepth,
+    config.synthScale,
+    config.synthTempo,
+    isVideoRecording,
+  ]);
+
   useEffect(() => () => {
     clearVideoStopTimer();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -177,14 +255,16 @@ export function useVideoExport({
     cleanupVideoExportSession({
       mediaRecorderRef,
       mediaStreamRef,
+      microphoneStreamRef,
       recordingLoopRestoreRef,
+      recordingSynthEngineRef,
       videoChunksRef,
     }, {
       setIsVideoRecording,
       setSequenceLoopEnabled,
       setVideoNotice,
     });
-  }, [clearVideoStopTimer]);
+  }, [clearVideoStopTimer, microphoneStreamRef]);
 
   return {
     dismissVideoNotice,

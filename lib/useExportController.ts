@@ -14,6 +14,7 @@ type UseExportControllerArgs = {
   sequenceLoopEnabled: boolean;
   sequenceSinglePassDuration: number;
   setSequenceLoopEnabled: (value: boolean) => void;
+  microphoneStreamRef: MutableRefObject<MediaStream | null>;
   sharedAudioStreamRef: MutableRefObject<MediaStream | null>;
   synthEngineRef: MutableRefObject<SynthEngine | null>;
   videoDurationSeconds: number;

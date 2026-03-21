@@ -306,6 +306,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
     dismissAudioNotice,
     handleAudioSourceModeChange,
     isAudioActive,
+    microphoneStreamRef,
     sharedAudioStreamRef,
     startAudio,
     stopAudio,

@@ -5,6 +5,10 @@ import { AudioControllerRefs, AudioControllerSetters } from './audioSourceTypes'
 import { getAudioContextCtor } from './audioSourceUtils';
 import type { SynthEngine } from './audioControllerTypes';
 
+type CreateSynthEngineOptions = {
+  connectToDestination?: boolean;
+};
+
 export function stopSynthEngine(synth: SynthEngine | null) {
   if (!synth) {
     return;
@@ -25,7 +29,10 @@ export function stopSynthEngine(synth: SynthEngine | null) {
   synth.mediaDestination.disconnect();
 }
 
-export async function createSynthEngine(nextConfig: ParticleConfig) {
+export async function createSynthEngine(
+  nextConfig: ParticleConfig,
+  { connectToDestination = true }: CreateSynthEngineOptions = {},
+) {
   const AudioContextCtor = getAudioContextCtor();
   const audioCtx = new AudioContextCtor();
   const analyser = audioCtx.createAnalyser();
@@ -51,7 +58,9 @@ export async function createSynthEngine(nextConfig: ParticleConfig) {
   filter.connect(noteGain);
   noteGain.connect(masterGain);
   masterGain.connect(analyser);
-  masterGain.connect(audioCtx.destination);
+  if (connectToDestination) {
+    masterGain.connect(audioCtx.destination);
+  }
   masterGain.connect(mediaDestination);
 
   const synth: SynthEngine = {

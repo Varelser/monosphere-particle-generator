@@ -196,7 +196,8 @@ Example:
 - The `FX` tab also includes `Standalone Synth`, which opens a separate synth window and feeds audio analysis back into the main scene.
 - On macOS, shared-audio capture depends on browser support. Chromium browsers generally work best for tab audio or screen audio with the browser share dialog.
 - If a shared app window or system surface does not expose an audio track, prefer the `Standalone Synth` mode instead of relying on screen-share capture.
-- `Standalone Synth` is intended for live playback and reactive visuals; the main window's WebM export does not embed that companion-window audio track.
+- Microphone and shared-audio capture can be embedded into WebM exports when those inputs are active.
+- `Standalone Synth` keeps live playback in its companion window, and WebM export mirrors the synth settings into an internal capture track when that mode is active.
 - Shared audio mode surfaces connection errors directly in the `FX` tab and includes a short 4-step YouTube Live workflow.
 - Presets are managed from the `Main` tab and are stored in browser `localStorage`.
 - The preset browser supports free-text search plus derived categories such as `Fluid`, `Chaos`, `Orbit`, `Pulse`, `Plexus`, and `Heavy`.

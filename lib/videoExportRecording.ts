@@ -1,6 +1,7 @@
 import { MutableRefObject } from 'react';
 import type { ParticleConfig } from '../types';
 import type { Notice, SynthEngine } from './audioControllerTypes';
+import { stopSynthEngine } from './audioSynthSource';
 import { buildRecordingStream, downloadRecordedVideo, stopMediaStream } from './videoExportHelpers';
 
 export type VideoExportMode = 'current' | 'sequence';
@@ -8,7 +9,9 @@ export type VideoExportMode = 'current' | 'sequence';
 export type VideoExportRefs = {
   mediaRecorderRef: MutableRefObject<MediaRecorder | null>;
   mediaStreamRef: MutableRefObject<MediaStream | null>;
+  microphoneStreamRef: MutableRefObject<MediaStream | null>;
   recordingLoopRestoreRef: MutableRefObject<boolean | null>;
+  recordingSynthEngineRef: MutableRefObject<SynthEngine | null>;
   videoChunksRef: MutableRefObject<Blob[]>;
 };
 
@@ -34,6 +37,12 @@ type StartVideoRecorderSessionArgs = {
 export function cleanupVideoExportSession(refs: VideoExportRefs, setters: VideoExportSetters) {
   stopMediaStream(refs.mediaStreamRef.current);
   refs.mediaStreamRef.current = null;
+
+  if (refs.recordingSynthEngineRef.current) {
+    stopSynthEngine(refs.recordingSynthEngineRef.current);
+    void refs.recordingSynthEngineRef.current.context.close().catch(() => {});
+    refs.recordingSynthEngineRef.current = null;
+  }
 
   if (refs.recordingLoopRestoreRef.current !== null) {
     setters.setSequenceLoopEnabled(refs.recordingLoopRestoreRef.current);
@@ -70,7 +79,9 @@ export function startVideoRecorderSession({
   const recordingStream = buildRecordingStream(
     canvas,
     config,
+    refs.microphoneStreamRef,
     sharedAudioStreamRef,
+    refs.recordingSynthEngineRef,
     synthEngineRef,
     videoFps,
   );

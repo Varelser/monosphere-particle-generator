@@ -85,7 +85,7 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
         <div className="mb-1">2. A separate window will run the synth and feed analysis back here.</div>
         <div className="mb-1">3. If autoplay is blocked, click Start Audio inside that window once.</div>
         <div className="mb-1">4. This is the reliable fallback when shared app-window/system audio is flaky.</div>
-        <div>5. WebM export in the main app records the canvas only; this mode is best for live visuals/streaming.</div>
+        <div>5. WebM export can mirror this synth into the recording when the standalone synth is active.</div>
       </div>
     )}
     {(audioSourceMode === 'internal-synth' || audioSourceMode === 'standalone-synth') && (
