@@ -94,6 +94,8 @@ export const ParticleSystem: React.FC<{
     uAudioBassLine: { value: 0 },
     uAudioTrebleLine: { value: 0 },
     uAudioPulse: { value: 0 },
+    uAudioMorph: { value: 0 },
+    uAudioShatter: { value: 0 },
     uAudioTwist: { value: 0 },
     uAudioBend: { value: 0 },
     uAudioWarp: { value: 0 },
@@ -166,6 +168,8 @@ export const ParticleSystem: React.FC<{
     const bassInput = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
     const trebleInput = config.audioEnabled ? audioRef.current.treble * config.audioJitterScale : 0;
     const pulseInput = config.audioEnabled ? audioRef.current.pulse * config.audioPulseScale : 0;
+    const morphInput = config.audioEnabled ? audioRef.current.pulse * config.audioMorphScale : 0;
+    const shatterInput = config.audioEnabled ? (trebleInput * 0.75 + pulseInput * 0.35) * config.audioShatterScale : 0;
     const twistInput = config.audioEnabled ? (bassInput * 0.6 + pulseInput * 0.9) * config.audioTwistScale : 0;
     const bendInput = config.audioEnabled ? (trebleInput * 0.55 + pulseInput * 0.7) * config.audioBendScale : 0;
     const warpInput = config.audioEnabled ? (bassInput * 0.35 + trebleInput * 0.35 + pulseInput) * config.audioWarpScale : 0;
@@ -181,6 +185,8 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioBassLine.value = bassInput * config.audioLineScale;
       mat.uniforms.uAudioTrebleLine.value = trebleInput * config.audioLineScale;
       mat.uniforms.uAudioPulse.value = pulseInput;
+      mat.uniforms.uAudioMorph.value = morphInput;
+      mat.uniforms.uAudioShatter.value = shatterInput;
       mat.uniforms.uAudioTwist.value = twistInput;
       mat.uniforms.uAudioBend.value = bendInput;
       mat.uniforms.uAudioWarp.value = warpInput;
@@ -196,6 +202,8 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioBassLine.value = 0;
       mat.uniforms.uAudioTrebleLine.value = 0;
       mat.uniforms.uAudioPulse.value = 0;
+      mat.uniforms.uAudioMorph.value = 0;
+      mat.uniforms.uAudioShatter.value = 0;
       mat.uniforms.uAudioTwist.value = 0;
       mat.uniforms.uAudioBend.value = 0;
       mat.uniforms.uAudioWarp.value = 0;

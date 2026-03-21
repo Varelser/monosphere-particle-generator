@@ -150,6 +150,8 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
     <Slider label="Pulse -> Particles" value={config.audioPulseScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioPulseScale', v)} />
     <Slider label="Pulse -> Burst" value={config.audioBurstScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBurstScale', v)} />
     <Slider label="Pulse -> Screen FX" value={config.audioScreenScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioScreenScale', v)} />
+    <Slider label="Pulse -> Motion Morph" value={config.audioMorphScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioMorphScale', v)} />
+    <Slider label="Treble -> Shatter" value={config.audioShatterScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioShatterScale', v)} />
     <Slider label="Audio -> Twist" value={config.audioTwistScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTwistScale', v)} />
     <Slider label="Audio -> Bend" value={config.audioBendScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBendScale', v)} />
     <Slider label="Audio -> Radial Warp" value={config.audioWarpScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioWarpScale', v)} />

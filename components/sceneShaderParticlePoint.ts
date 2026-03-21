@@ -3,7 +3,7 @@ import { PHYSICS_LOGIC } from './scenePhysicsLogic';
 export const PARTICLE_VERTEX_SHADER = `
   precision highp float;
   ${PHYSICS_LOGIC}
-  uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha; uniform float uAudioPulse; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
+  uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha; uniform float uAudioPulse; uniform float uAudioMorph; uniform float uAudioShatter; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
   uniform float uGlobalSpeed; uniform float uGlobalAmp; uniform float uGlobalNoiseScale;
     uniform float uGlobalComplexity;
   uniform float uGlobalEvolution; uniform float uGlobalFidelity; uniform float uGlobalOctaveMult;
@@ -34,6 +34,10 @@ export const PARTICLE_VERTEX_SHADER = `
     float warpWave = sin(length(pos.xz) * 0.045 - timeValue * 3.1 + phase) * 0.5 + 0.5;
     pos += radialDir * amp * uAudioWarp * mix(0.02, 0.12, warpWave) * (0.5 + variant * 0.6);
     pos.y += sin(length(origin.xz) * 0.03 + timeValue * 2.6 + phase) * amp * uAudioWarp * 0.08;
+    vec3 tearNoise = noiseVec(pos * (0.04 + uAudioShatter * 0.02) + vec3(timeValue * 1.9 + phase));
+    vec3 tearDir = normalize(vec3(tearNoise.x, tearNoise.y * 0.35 + sin(phase + timeValue), tearNoise.z) + vec3(0.0001));
+    float tearMask = smoothstep(0.15, 0.95, fract(variant * 7.13 + tearNoise.x * 0.5 + timeValue * 0.12));
+    pos += tearDir * amp * uAudioShatter * tearMask * mix(0.02, 0.16, variant);
     return pos;
   }
   void main() {
@@ -88,6 +92,36 @@ export const PARTICLE_VERTEX_SHADER = `
         uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
         uInterLayerPadding
     );
+    if (uAudioMorph > 0.001) {
+      float altMotionType = mod(aMotionType + 17.0 + floor(aVariant * 11.0), 90.0);
+      vec3 morphPos = calculateLayerPosition(
+        aPosition, animatedOffset, altMotionType, uTime * (1.02 + aVariant * 0.12),
+        speed, amp, freq * (1.0 + aVariant * 0.15), radius,
+        aPhase + 1.7, aRandom, uWind, noiseScale,
+        uGlobalEvolution, complexity, uFluidForce, uViscosity,
+        uGlobalFidelity, uGlobalOctaveMult, uAffectPos,
+        uResistance, uMoveWithWind, uNeighborForce,
+        uCollisionMode, uCollisionRadius, uRepulsion,
+        uGravity, uBoundaryY, uBoundaryEnabled, uBoundaryBounce,
+        uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
+        uInterLayerPadding
+      );
+      vec3 prevMorphPos = calculateLayerPosition(
+        aPosition, prevAnimatedOffset, altMotionType, prevTime * (1.02 + aVariant * 0.12),
+        speed, amp, freq * (1.0 + aVariant * 0.15), radius,
+        aPhase + 1.7, aRandom, uWind, noiseScale,
+        uGlobalEvolution, complexity, uFluidForce, uViscosity,
+        uGlobalFidelity, uGlobalOctaveMult, uAffectPos,
+        uResistance, uMoveWithWind, uNeighborForce,
+        uCollisionMode, uCollisionRadius, uRepulsion,
+        uGravity, uBoundaryY, uBoundaryEnabled, uBoundaryBounce,
+        uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
+        uInterLayerPadding
+      );
+      float morphMix = clamp(uAudioMorph * (0.22 + aVariant * 0.48), 0.0, 0.92);
+      pos = mix(pos, morphPos, morphMix);
+      prevPos = mix(prevPos, prevMorphPos, morphMix);
+    }
 
     if (length(uSpin) > 0.001) {
         pos = rotate(pos, vec3(1,0,0), uSpin.x * uTime);

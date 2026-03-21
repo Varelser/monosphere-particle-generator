@@ -15,7 +15,7 @@ export const LINE_VERTEX_SHADER = `
     uniform float uCollisionMode; uniform float uCollisionRadius; uniform float uRepulsion;
   uniform float uAffectPos; uniform vec2 uMouse; uniform float uMouseForce;
   uniform float uMouseRadius; uniform float uIsOrthographic;
-  uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine; uniform float uAudioPulse; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
+  uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine; uniform float uAudioPulse; uniform float uAudioMorph; uniform float uAudioShatter; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
   uniform float uInterLayerEnabled; uniform int uInterLayerColliderCount; uniform vec4 uInterLayerColliders[MAX_INTER_LAYER_COLLIDERS]; uniform float uInterLayerStrength; uniform float uInterLayerPadding;
   uniform float uConnectDistance;
   uniform float uOpacity;
@@ -40,6 +40,10 @@ export const LINE_VERTEX_SHADER = `
     float warpWave = sin(length(pos.xz) * 0.045 - timeValue * 3.1 + phase) * 0.5 + 0.5;
     pos += radialDir * amp * uAudioWarp * mix(0.02, 0.12, warpWave) * (0.5 + variant * 0.6);
     pos.y += sin(length(origin.xz) * 0.03 + timeValue * 2.6 + phase) * amp * uAudioWarp * 0.08;
+    vec3 tearNoise = noiseVec(pos * (0.04 + uAudioShatter * 0.02) + vec3(timeValue * 1.9 + phase));
+    vec3 tearDir = normalize(vec3(tearNoise.x, tearNoise.y * 0.35 + sin(phase + timeValue), tearNoise.z) + vec3(0.0001));
+    float tearMask = smoothstep(0.15, 0.95, fract(variant * 7.13 + tearNoise.x * 0.5 + timeValue * 0.12));
+    pos += tearDir * amp * uAudioShatter * tearMask * mix(0.02, 0.16, variant);
     return pos;
   }
 
@@ -85,6 +89,23 @@ export const LINE_VERTEX_SHADER = `
       uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
       uInterLayerPadding
     );
+    if (uAudioMorph > 0.001) {
+      float altMotionType = mod(aMotionType + 17.0 + floor(aVariant * 11.0), 90.0);
+      vec3 morphResult = calculateLayerPosition(
+        p, off, altMotionType, uTime * (1.02 + aVariant * 0.12),
+        speed, amp, freq * (1.0 + aVariant * 0.15), radius,
+        aPhase + 1.7, aRandom, uWind, noiseScale,
+        uGlobalEvolution, complexity, uFluidForce, uViscosity,
+        uGlobalFidelity, uGlobalOctaveMult, uAffectPos,
+        uResistance, uMoveWithWind, uNeighborForce,
+        uCollisionMode, uCollisionRadius, uRepulsion,
+        uGravity, uBoundaryY, uBoundaryEnabled, uBoundaryBounce,
+        uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
+        uInterLayerPadding
+      );
+      float morphMix = clamp(uAudioMorph * (0.22 + aVariant * 0.48), 0.0, 0.92);
+      result = mix(result, morphResult, morphMix);
+    }
     return applyAudioSpatialWarp(result, off, uTime, amp, aPhase, aVariant);
   }
 

@@ -18,6 +18,8 @@ export interface ParticleConfigAudio {
   audioPulseScale: number;
   audioBurstScale: number;
   audioScreenScale: number;
+  audioMorphScale: number;
+  audioShatterScale: number;
   audioTwistScale: number;
   audioBendScale: number;
   audioWarpScale: number;
