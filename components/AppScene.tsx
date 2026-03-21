@@ -74,12 +74,13 @@ const CameraImpulseRig: React.FC<{
   isPlaying: boolean;
 }> = ({ audioRef, config, controlsRef, isInteractingRef, isPlaying }) => {
   const { camera } = useThree();
-  const basePositionRef = React.useRef(new THREE.Vector3());
+  const basePositionRef = React.useRef(getDefaultCameraPosition(config));
   const baseTargetRef = React.useRef(new THREE.Vector3(0, 0, 0));
   const baseFovRef = React.useRef('fov' in camera ? camera.fov : 50);
   const baseZoomRef = React.useRef('zoom' in camera ? camera.zoom : 1);
   const baseModeRef = React.useRef(config.viewMode);
   const baseDistanceRef = React.useRef(config.cameraDistance);
+  const initializedRef = React.useRef(false);
 
   useFrame(({ clock }) => {
     if (config.cameraControlMode === 'manual') {
@@ -90,10 +91,12 @@ const CameraImpulseRig: React.FC<{
     const impulse = config.cameraImpulseStrength;
     const burstEnergy = getBurstDriveEnergy(config, t, isPlaying, config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0);
     const needsSync =
+      !initializedRef.current ||
       isInteractingRef.current ||
       baseModeRef.current !== config.viewMode ||
       Math.abs(baseDistanceRef.current - config.cameraDistance) > 0.001;
     if (needsSync) {
+      initializedRef.current = true;
       basePositionRef.current.copy(
         config.cameraControlMode === 'auto'
           ? getDefaultCameraPosition(config)

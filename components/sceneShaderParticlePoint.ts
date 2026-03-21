@@ -26,9 +26,9 @@ export const PARTICLE_VERTEX_SHADER = `
     float aFreqFactor = aData2.z; float aSizeFactor = aData2.w;
     float aSpawnOffset = aData3.x; float aLifeJitter = aData3.y; float aVariant = aData3.z;
     float radius = aBaseRadiusFactor * uGlobalRadius;
-    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTreble * 2.0);
-    float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBass * 0.5);
-    float trebleJitterMix = 1.0 + uAudioTreble * 0.85;
+    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTreble * 3.2);
+    float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBass * 1.35);
+    float trebleJitterMix = 1.0 + uAudioTreble * 1.8;
     float freq = aFreqFactor * uGlobalFreq * trebleJitterMix;
     float noiseScale = uGlobalNoiseScale * trebleJitterMix;
     float complexity = uGlobalComplexity * mix(1.0, trebleJitterMix, 0.6);
@@ -154,7 +154,8 @@ export const PARTICLE_VERTEX_SHADER = `
       return;
     }
     float sizeScale = (uIsOrthographic > 0.5) ? 1.0 : min(2.5, 400.0 / max(1.0, dist));
-    float pSize = aSizeFactor * uGlobalSize * sizeScale * (1.0 + uAudioBass * 0.5);
+    float audioSizeBoost = 1.0 + uAudioBass * 1.85 + uAudioTreble * 0.45;
+    float pSize = aSizeFactor * uGlobalSize * sizeScale * audioSizeBoost;
     float lifeSizeScale = 1.0;
     if (uLife > 0.0) {
       float lifeBloom = sin(clamp(lifeProgress, 0.0, 1.0) * 3.14159265359);
@@ -185,7 +186,8 @@ export const PARTICLE_VERTEX_SHADER = `
     vSpriteMode = uSpriteMode;
     vVariant = aVariant;
     vBurst = clamp(uBurst, 0.0, 1.0) * (1.0 - smoothstep(0.0, 0.6, lifeProgress));
-    vAlpha = uOpacity * lifeAlpha * (1.0 - smoothstep(2000.0, 5000.0, length(pos))) * (1.0 + clamp(uTrail, 0.0, 0.99) * 0.35);
+    float audioAlphaBoost = 1.0 + uAudioBass * 0.95 + uAudioTreble * 0.35;
+    vAlpha = uOpacity * lifeAlpha * (1.0 - smoothstep(2000.0, 5000.0, length(pos))) * (1.0 + clamp(uTrail, 0.0, 0.99) * 0.35) * audioAlphaBoost;
   }
 `;
 

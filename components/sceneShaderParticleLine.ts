@@ -49,9 +49,9 @@ export const LINE_VERTEX_SHADER = `
     float aBaseRadiusFactor = d1.w; float aSpeedFactor = d2.x; float aAmpFactor = d2.y;
     float aFreqFactor = d2.z; float aSizeFactor = d2.w;
     float radius = aBaseRadiusFactor * uGlobalRadius;
-    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTreble * 2.0);
-    float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBass * 0.5);
-    float trebleJitterMix = 1.0 + uAudioTreble * 0.85;
+    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTreble * 3.2);
+    float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBass * 1.35);
+    float trebleJitterMix = 1.0 + uAudioTreble * 1.8;
     float freq = aFreqFactor * uGlobalFreq * trebleJitterMix;
     float noiseScale = uGlobalNoiseScale * trebleJitterMix;
     float complexity = uGlobalComplexity * mix(1.0, trebleJitterMix, 0.6);
@@ -95,7 +95,8 @@ export const LINE_VERTEX_SHADER = `
       float lifeProgressB = fract((uTime * 60.0) / lifeB + aData3B.x + uBurstPhase);
       vBurst = max(getBurstEnvelope(lifeProgressA), getBurstEnvelope(lifeProgressB)) * clamp(uBurst, 0.0, 2.0);
     }
-    vAlpha = (1.0 - smoothstep(0.0, uConnectDistance, dist)) * uOpacity;
+    float audioLineBoost = 1.0 + uAudioBass * 0.95 + uAudioTreble * 0.45;
+    vAlpha = (1.0 - smoothstep(0.0, uConnectDistance, dist)) * uOpacity * audioLineBoost;
     if (dist > uConnectDistance) vAlpha = 0.0;
     vec3 finalPos = mix(pA, pB, aMix);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);

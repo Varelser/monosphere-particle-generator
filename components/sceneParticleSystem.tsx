@@ -264,6 +264,7 @@ export const ParticleSystem: React.FC<{
           <instancedBufferAttribute attach="attributes-aData3" args={[data.d3, 4]} />
         </planeGeometry>
         <shaderMaterial
+          key={`mat-${config.particleColor}`}
           vertexShader={PARTICLE_VERTEX_SHADER}
           fragmentShader={FRAGMENT_SHADER}
           uniforms={uniforms}

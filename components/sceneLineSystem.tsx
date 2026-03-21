@@ -253,6 +253,7 @@ export const LineSystem: React.FC<{
           uLineShimmer: { value: 0 },
           uLineFlickerSpeed: { value: 1 },
         }}
+        key={`line-mat-${config.particleColor}`}
         transparent={true}
         depthWrite={false}
         blending={getLineBlendMode(config.particleColor)}
