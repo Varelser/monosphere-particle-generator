@@ -5,7 +5,7 @@ Kalokagathia is a local Vite + React + Three.js particle generator focused on mo
 It supports a split workflow:
 
 - Private workspace mode: your own editable presets and library live in browser `localStorage`
-- Public deployment mode: a bundled read-only library is loaded from [public-library.json](./public-library.json)
+- Optional public exhibition mode: a bundled read-only library is loaded from [public-library.json](./public-library.json)
 
 It supports:
 
@@ -97,7 +97,8 @@ Recommended flow:
 
 Build details:
 
-- `npm run build:github-pages` builds the public exhibition version with `VITE_LIBRARY_SCOPE=public`.
+- `npm run build:github-pages` builds the full-featured Pages version.
+- `npm run build:github-pages-public` builds the read-only exhibition version with `VITE_LIBRARY_SCOPE=public`.
 - It then copies `dist/index.html` to `dist/hp/kalokagathia.html`.
 - The final published URL becomes `https://varelserjp-code.github.io/hp/kalokagathia.html`.
 
@@ -119,7 +120,7 @@ This app can be deployed to Netlify as a static Vite site.
 
 The repository includes [netlify.toml](./netlify.toml), so Netlify should detect the correct settings automatically.
 
-This config also sets `VITE_LIBRARY_SCOPE=public`, so Netlify builds use the bundled public library instead of your private local preset storage.
+If you want Netlify to behave like the read-only exhibition build, set `VITE_LIBRARY_SCOPE=public`. Otherwise it will run in the default full-featured mode.
 
 Recommended flow:
 
@@ -144,7 +145,7 @@ Recommended workflow:
 2. Start from the bundled starter presets, or keep your own editable presets in browser `localStorage`.
 3. Export the library JSON from the private build when you want to publish.
 4. Run `npm run sync:public-library -- path/to/exported-library.json`.
-5. Deploy to Netlify. The public site will expose only that bundled read-only library.
+5. Deploy to Netlify. Use `VITE_LIBRARY_SCOPE=public` only when you want the read-only exhibition variant.
 
 The sync command normalizes the exported payload and writes it into [public-library.json](./public-library.json) by default. You can pass a second path if you want to generate a different target file.
 
