@@ -42,6 +42,7 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
       options={[
         { label: 'Microphone', val: 'microphone' },
         { label: 'Shared Tab / System', val: 'shared-audio' },
+        { label: 'Standalone Synth', val: 'standalone-synth' },
         { label: 'Built-in Synth', val: 'internal-synth' },
       ]}
       onChange={(value) => onAudioSourceModeChange(value as AudioSourceMode)}
@@ -72,12 +73,22 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
       <div className="mb-4 rounded border border-cyan-400/20 bg-cyan-500/10 px-3 py-3 text-[10px] uppercase tracking-widest text-cyan-100/80">
         <div className="mb-2 font-bold text-cyan-50">YouTube Live / Shared Audio</div>
         <div className="mb-1">1. Press Start Shared Audio.</div>
-        <div className="mb-1">2. Pick the tab, app window, or screen where your synth is playing.</div>
-        <div className="mb-1">3. Enable audio sharing in the browser picker.</div>
-        <div>4. Keep that share active while recording or streaming.</div>
+        <div className="mb-1">2. In the browser picker, prefer a browser tab if you need reliable audio.</div>
+        <div className="mb-1">3. Turn on audio sharing before confirming the picker.</div>
+        <div>4. If an app window exposes no audio track on macOS, use Standalone Synth instead.</div>
       </div>
     )}
-    {audioSourceMode === 'internal-synth' && (
+    {audioSourceMode === 'standalone-synth' && (
+      <div className="mb-4 rounded border border-emerald-400/20 bg-emerald-500/10 px-3 py-3 text-[10px] uppercase tracking-widest text-emerald-100/80">
+        <div className="mb-2 font-bold text-emerald-50">Standalone Synth Window</div>
+        <div className="mb-1">1. Press Open Standalone Synth.</div>
+        <div className="mb-1">2. A separate window will run the synth and feed analysis back here.</div>
+        <div className="mb-1">3. If autoplay is blocked, click Start Audio inside that window once.</div>
+        <div className="mb-1">4. This is the reliable fallback when shared app-window/system audio is flaky.</div>
+        <div>5. WebM export in the main app records the canvas only; this mode is best for live visuals/streaming.</div>
+      </div>
+    )}
+    {(audioSourceMode === 'internal-synth' || audioSourceMode === 'standalone-synth') && (
       <>
         <Toggle
           label="Synth Wave"
@@ -109,7 +120,9 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
         <Slider label="Pattern Depth" value={config.synthPatternDepth} min={0} max={1} step={0.01} onChange={(v) => updateConfig('synthPatternDepth', v)} />
         <SynthPatternEditor pattern={config.synthPattern} onChange={(nextPattern) => updateConfig('synthPattern', nextPattern)} />
         <div className="mb-4 rounded border border-white/10 bg-black/10 px-3 py-2 text-[10px] uppercase tracking-widest text-white/55">
-          Use this only when you want the browser to generate its own reference synth.
+          {audioSourceMode === 'standalone-synth'
+            ? 'These synth settings are mirrored into the companion window in real time.'
+            : 'Use this only when you want the browser to generate its own reference synth.'}
         </div>
       </>
     )}

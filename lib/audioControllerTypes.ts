@@ -1,6 +1,6 @@
 export type Notice = { tone: 'success' | 'error'; message: string };
 
-export type AnalyzerLike = Pick<AnalyserNode, 'frequencyBinCount' | 'getByteFrequencyData'>;
+export type AnalyzerLike = Pick<AnalyserNode, 'frequencyBinCount' | 'getByteFrequencyData'> & Partial<Pick<AnalyserNode, 'fftSize' | 'getByteTimeDomainData'>>;
 
 export type SynthEngine = {
   context: AudioContext;

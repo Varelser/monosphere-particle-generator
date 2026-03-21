@@ -4,6 +4,7 @@ import { Slider, Toggle } from './controlPanelParts';
 import { ControlPanelContentProps, NoticeBanner } from './controlPanelTabsShared';
 
 export const GlobalExportSection: React.FC<ControlPanelContentProps> = ({
+  audioSourceMode,
   frameNotice,
   isFrameExporting,
   isVideoRecording,
@@ -64,6 +65,11 @@ export const GlobalExportSection: React.FC<ControlPanelContentProps> = ({
         {isFrameExporting ? 'Capturing ZIP...' : 'PNG ZIP'}
       </div>
     </div>
+    {audioSourceMode === 'standalone-synth' && (
+      <div className="mt-2 rounded border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] uppercase tracking-widest text-amber-100/85">
+        Standalone Synth audio plays in its companion window. `Record WebM` captures the canvas only in this mode.
+      </div>
+    )}
     <NoticeBanner notice={videoNotice} onDismiss={onDismissVideoNotice} />
     <NoticeBanner notice={frameNotice} onDismiss={onDismissFrameNotice} />
   </div>

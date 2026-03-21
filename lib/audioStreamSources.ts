@@ -4,6 +4,37 @@ import { createFakeSharedAudioAnalyzer } from './audioAnalysis';
 import { attachStreamAnalyzer } from './audioSourceUtils';
 import { AudioControllerRefs, AudioControllerSetters } from './audioSourceTypes';
 
+function buildSharedDisplayMediaOptions() {
+  return {
+    audio: {
+      suppressLocalAudioPlayback: false,
+    },
+    video: {
+      displaySurface: 'browser',
+    },
+    selfBrowserSurface: 'exclude',
+    surfaceSwitching: 'include',
+    systemAudio: 'include',
+    monitorTypeSurfaces: 'include',
+  } as DisplayMediaStreamOptions;
+}
+
+function getSharedAudioFailureMessage(error: unknown) {
+  if (error instanceof Error) {
+    if (error.name === 'NotAllowedError') {
+      return 'Shared audio capture was cancelled. Choose a tab or screen and make sure audio sharing is enabled in the picker.';
+    }
+    if (error.name === 'NotReadableError') {
+      return 'The selected window could not expose audio. Browser tab sharing is more reliable than app-window capture on macOS.';
+    }
+    if (error.name === 'AbortError') {
+      return 'Shared audio capture was interrupted before it could start.';
+    }
+  }
+
+  return 'Shared audio capture could not be started. Try a Chromium browser tab with audio enabled, or use Standalone Synth.';
+}
+
 export async function startMicrophoneAudioSource(
   refs: AudioControllerRefs,
   setters: AudioControllerSetters,
@@ -44,10 +75,12 @@ export async function startSharedAudioSource(
     throw new Error('Display audio capture is not supported in this browser.');
   }
 
-  const stream = await navigator.mediaDevices.getDisplayMedia({
-    audio: true,
-    video: true,
-  });
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia(buildSharedDisplayMediaOptions());
+  } catch (error) {
+    throw new Error(getSharedAudioFailureMessage(error));
+  }
 
   const stopWhenShareEnds = () => {
     if (refs.sharedAudioStreamRef.current === stream) {
@@ -60,6 +93,13 @@ export async function startSharedAudioSource(
     track.addEventListener('ended', stopWhenShareEnds, { once: true });
   });
 
-  await attachStreamAnalyzer(stream, refs.sharedAudioStreamRef, refs, setters);
+  try {
+    await attachStreamAnalyzer(stream, refs.sharedAudioStreamRef, refs, setters);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('No audio track')) {
+      throw new Error('The selected surface did not provide an audio track. On macOS, browser tab sharing is the most reliable option; app-window/system capture may be unavailable. Try sharing a tab with audio enabled, or use Standalone Synth.');
+    }
+    throw error;
+  }
   setters.setAudioNotice({ tone: 'success', message: 'Shared audio connected.' });
 }

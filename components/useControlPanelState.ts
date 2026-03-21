@@ -5,7 +5,7 @@ import { useControlPanelLocalState } from './useControlPanelLocalState';
 import { useSequenceDrag } from './useSequenceDrag';
 
 type UseControlPanelStateArgs = {
-  audioSourceMode: 'microphone' | 'shared-audio' | 'internal-synth';
+  audioSourceMode: 'microphone' | 'shared-audio' | 'standalone-synth' | 'internal-synth';
   config: ParticleConfig;
   isAudioActive: boolean;
   isPublicLibrary: boolean;
@@ -36,6 +36,8 @@ export function useControlPanelState({
     ? (isAudioActive ? 'Microphone Active' : 'Start Microphone')
     : audioSourceMode === 'shared-audio'
       ? (isAudioActive ? 'Shared Audio Active' : 'Start Shared Audio')
+      : audioSourceMode === 'standalone-synth'
+        ? (isAudioActive ? 'Standalone Synth Active' : 'Open Standalone Synth')
       : (isAudioActive ? 'Built-in Synth Active' : 'Start Built-in Synth');
 
   const sequenceDrag = useSequenceDrag({

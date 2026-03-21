@@ -32,8 +32,8 @@ export async function attachStreamAnalyzer(
   const audioCtx = new AudioContextCtor();
   const source = audioCtx.createMediaStreamSource(stream);
   const analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 256;
-  analyser.smoothingTimeConstant = 0.72;
+  analyser.fftSize = 512;
+  analyser.smoothingTimeConstant = 0.78;
   source.connect(analyser);
   await audioCtx.resume();
 

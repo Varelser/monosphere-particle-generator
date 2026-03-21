@@ -1,6 +1,11 @@
 import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import type { AudioSourceMode, ParticleConfig } from '../types';
 import { startAudioLevelMonitoring } from './audioAnalysis';
+import {
+  buildStandaloneSynthUrl,
+  createAudioBridgeSessionId,
+  isAudioBridgeHostMessage,
+} from './audioBridge';
 import { applySynthSettings, restartSynthSequencer } from './audioSynth';
 import type { AnalyzerLike, Notice, SynthEngine } from './audioControllerTypes';
 import { startSelectedAudioSource, stopAudioResources } from './audioSourceManager';
@@ -20,12 +25,63 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
   const microphoneStreamRef = useRef<MediaStream | null>(null);
   const sharedAudioStreamRef = useRef<MediaStream | null>(null);
   const synthEngineRef = useRef<SynthEngine | null>(null);
+  const standaloneSynthWindowRef = useRef<Window | null>(null);
+  const standaloneSynthSessionIdRef = useRef<string | null>(null);
 
   const dismissAudioNotice = useCallback(() => {
     setAudioNotice(null);
   }, []);
 
+  const postToStandaloneSynthWindow = useCallback((message: unknown) => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    const standaloneWindow = standaloneSynthWindowRef.current;
+    if (!standaloneWindow || standaloneWindow.closed) {
+      return false;
+    }
+
+    standaloneWindow.postMessage(message, window.location.origin);
+    return true;
+  }, []);
+
+  const ensureStandaloneSynthWindow = useCallback(() => {
+    if (typeof window === 'undefined') {
+      throw new Error('Standalone synth can only be opened in a browser window.');
+    }
+
+    const sessionId = standaloneSynthSessionIdRef.current ?? createAudioBridgeSessionId();
+    standaloneSynthSessionIdRef.current = sessionId;
+    const popupUrl = buildStandaloneSynthUrl(window.location.href, sessionId);
+    let standaloneWindow = standaloneSynthWindowRef.current;
+
+    if (!standaloneWindow || standaloneWindow.closed) {
+      standaloneWindow = window.open(
+        popupUrl,
+        'kalokagathia-standalone-synth',
+        'popup=yes,width=460,height=760,resizable=yes',
+      );
+    }
+
+    if (!standaloneWindow) {
+      throw new Error('Could not open the standalone synth window. Allow pop-ups for this site and try again.');
+    }
+
+    standaloneSynthWindowRef.current = standaloneWindow;
+    standaloneWindow.focus();
+    return sessionId;
+  }, []);
+
   const stopAudio = useCallback(() => {
+    const standaloneSessionId = standaloneSynthSessionIdRef.current;
+    if (standaloneSessionId) {
+      postToStandaloneSynthWindow({
+        type: 'audio-bridge-stop',
+        sessionId: standaloneSessionId,
+      });
+    }
+
     stopAudioResources({
       analyzerRef,
       audioContextRef,
@@ -34,9 +90,45 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
       sharedAudioStreamRef,
       synthEngineRef,
     }, setConfig, setIsAudioActive);
-  }, [setConfig]);
+  }, [postToStandaloneSynthWindow, setConfig]);
 
   const startAudio = useCallback(async () => {
+    if (latestConfigRef.current.audioSourceMode === 'standalone-synth') {
+      try {
+        stopAudioResources({
+          analyzerRef,
+          audioContextRef,
+          audioRef,
+          microphoneStreamRef,
+          sharedAudioStreamRef,
+          synthEngineRef,
+        }, setConfig, setIsAudioActive);
+
+        setAudioNotice(null);
+        const sessionId = ensureStandaloneSynthWindow();
+        postToStandaloneSynthWindow({
+          type: 'audio-bridge-connect',
+          sessionId,
+          config: latestConfigRef.current,
+          autoStart: true,
+        });
+        postToStandaloneSynthWindow({
+          type: 'audio-bridge-start',
+          sessionId,
+          config: latestConfigRef.current,
+        });
+        setAudioNotice({
+          tone: 'success',
+          message: 'Standalone synth window opened. If audio does not start automatically there, click Start Audio in that window.',
+        });
+      } catch (err) {
+        console.error('Standalone synth initialization failed:', err);
+        const message = err instanceof Error ? err.message : 'Standalone synth window could not be opened.';
+        setAudioNotice({ tone: 'error', message });
+      }
+      return;
+    }
+
     try {
       stopAudio();
       setAudioNotice(null);
@@ -62,7 +154,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
       const message = err instanceof Error ? err.message : 'Audio input could not be started.';
       setAudioNotice({ tone: 'error', message });
     }
-  }, [latestConfigRef, setConfig, stopAudio]);
+  }, [ensureStandaloneSynthWindow, latestConfigRef, postToStandaloneSynthWindow, setConfig, stopAudio]);
 
   const handleAudioSourceModeChange = useCallback((mode: AudioSourceMode) => {
     stopAudio();
@@ -109,6 +201,100 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
     }
     return startAudioLevelMonitoring(analyzerRef, audioRef, config.audioSensitivity);
   }, [config.audioSensitivity, isAudioActive]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      const message = event.data;
+      if (!isAudioBridgeHostMessage(message)) {
+        return;
+      }
+
+      if (message.sessionId !== standaloneSynthSessionIdRef.current) {
+        return;
+      }
+
+      if (latestConfigRef.current.audioSourceMode !== 'standalone-synth' && message.type !== 'audio-bridge-closed') {
+        return;
+      }
+
+      if (message.type === 'audio-bridge-ready') {
+        postToStandaloneSynthWindow({
+          type: 'audio-bridge-config',
+          sessionId: message.sessionId,
+          config: latestConfigRef.current,
+        });
+        postToStandaloneSynthWindow({
+          type: 'audio-bridge-start',
+          sessionId: message.sessionId,
+          config: latestConfigRef.current,
+        });
+        return;
+      }
+
+      if (message.type === 'audio-bridge-status') {
+        if (!message.active) {
+          audioRef.current = { bass: 0, treble: 0 };
+        }
+        setIsAudioActive(message.active);
+        setConfig((prev) => ({ ...prev, audioEnabled: message.active }));
+        if (message.notice) {
+          setAudioNotice(message.notice);
+        }
+        return;
+      }
+
+      if (message.type === 'audio-bridge-levels') {
+        audioRef.current = { bass: message.bass, treble: message.treble };
+        return;
+      }
+
+      if (message.type === 'audio-bridge-error') {
+        setIsAudioActive(false);
+        setConfig((prev) => ({ ...prev, audioEnabled: false }));
+        setAudioNotice({ tone: 'error', message: message.message });
+        return;
+      }
+
+      if (message.type === 'audio-bridge-closed') {
+        audioRef.current = { bass: 0, treble: 0 };
+        setIsAudioActive(false);
+        setConfig((prev) => ({ ...prev, audioEnabled: false }));
+        if (latestConfigRef.current.audioSourceMode === 'standalone-synth') {
+          setAudioNotice({ tone: 'error', message: 'Standalone synth window was closed.' });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [latestConfigRef, postToStandaloneSynthWindow, setConfig]);
+
+  useEffect(() => {
+    if (latestConfigRef.current.audioSourceMode !== 'standalone-synth') {
+      return;
+    }
+
+    const standaloneSessionId = standaloneSynthSessionIdRef.current;
+    if (!standaloneSessionId) {
+      return;
+    }
+
+    postToStandaloneSynthWindow({
+      type: 'audio-bridge-config',
+      sessionId: standaloneSessionId,
+      config: latestConfigRef.current,
+    });
+  }, [config, latestConfigRef, postToStandaloneSynthWindow]);
 
   useEffect(() => () => {
     stopAudio();

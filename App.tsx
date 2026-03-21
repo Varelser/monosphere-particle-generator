@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { ControlPanel } from './components/ControlPanel';
 import { AppScene } from './components/AppScene';
+import { StandaloneSynthWindow } from './components/StandaloneSynthWindow';
 import type { ParticleConfig, PresetSequenceItem } from './types';
 import {
   DEFAULT_CONFIG,
@@ -20,8 +21,16 @@ import { useLibraryTransfer } from './lib/useLibraryTransfer';
 import { usePresetLibrary } from './lib/usePresetLibrary';
 import { usePresetTransition } from './lib/usePresetTransition';
 import { useSequenceController } from './lib/useSequenceController';
+import { AUDIO_BRIDGE_MODE_PARAM, AUDIO_BRIDGE_MODE_VALUE } from './lib/audioBridge';
 
 const App: React.FC = () => {
+  const appMode = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get(AUDIO_BRIDGE_MODE_PARAM)
+    : null;
+  if (appMode === AUDIO_BRIDGE_MODE_VALUE) {
+    return <StandaloneSynthWindow />;
+  }
+
   const isPublicLibraryMode = LIBRARY_SCOPE === 'public';
   const [config, setConfig] = useState<ParticleConfig>(() => (
     isPublicLibraryMode ? normalizeConfig(PUBLIC_PRESET_LIBRARY.currentConfig) : loadInitialPrivateConfig()
@@ -113,6 +122,20 @@ const App: React.FC = () => {
     latestConfigRef,
     setConfig,
   });
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !import.meta.env.DEV) return;
+    (window as Window & {
+      __KALO_AUDIO_DEBUG__?: {
+        getLevels: () => { bass: number; treble: number };
+      };
+    }).__KALO_AUDIO_DEBUG__ = {
+      getLevels: () => ({ ...audioRef.current }),
+    };
+    return () => {
+      delete (window as Window & { __KALO_AUDIO_DEBUG__?: unknown }).__KALO_AUDIO_DEBUG__;
+    };
+  }, [audioRef]);
 
   const {
     activeSequenceItemId,

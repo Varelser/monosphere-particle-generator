@@ -13,6 +13,7 @@ It supports:
 - Per-source particle counts and motion parameters
 - Nearby connection lines / plexus rendering
 - Audio-reactive motion using microphone input or shared tab/system audio
+- A standalone synth companion window that drives the visuals from a separate browser window without relying on screen-share capture
 - Global look controls for softness, glow halo, and depth fog
 - Camera control modes for auto, hybrid, or fully manual orbit behavior
 - Viewport render-quality profiles for draft, balanced, or cinematic editing
@@ -192,7 +193,10 @@ Example:
 - PNG frame export is available from the `Main` tab and downloads a `.zip` archive of numbered frames.
 - Audio controls are available under the `FX` tab.
 - The `FX` tab can use microphone input, shared tab/system audio, or the optional built-in browser synth.
+- The `FX` tab also includes `Standalone Synth`, which opens a separate synth window and feeds audio analysis back into the main scene.
 - On macOS, shared-audio capture depends on browser support. Chromium browsers generally work best for tab audio or screen audio with the browser share dialog.
+- If a shared app window or system surface does not expose an audio track, prefer the `Standalone Synth` mode instead of relying on screen-share capture.
+- `Standalone Synth` is intended for live playback and reactive visuals; the main window's WebM export does not embed that companion-window audio track.
 - Shared audio mode surfaces connection errors directly in the `FX` tab and includes a short 4-step YouTube Live workflow.
 - Presets are managed from the `Main` tab and are stored in browser `localStorage`.
 - The preset browser supports free-text search plus derived categories such as `Fluid`, `Chaos`, `Orbit`, `Pulse`, `Plexus`, and `Heavy`.

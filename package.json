@@ -16,6 +16,7 @@
     "verify:public-ui": "node scripts/verify-public-ui.mjs",
     "verify:export": "node scripts/verify-export.mjs",
     "verify:audio": "node scripts/verify-audio.mjs",
+    "verify:standalone-synth": "node scripts/verify-standalone-synth.mjs",
     "verify:collision": "node scripts/verify-collision.mjs",
     "verify:shared-audio": "node scripts/verify-shared-audio.mjs",
     "verify:library": "node scripts/verify-library.mjs",
