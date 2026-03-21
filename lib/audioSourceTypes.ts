@@ -1,11 +1,11 @@
 import { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { ParticleConfig } from '../types';
-import type { AnalyzerLike, Notice, SynthEngine } from './audioControllerTypes';
+import type { AnalyzerLike, AudioLevels, Notice, SynthEngine } from './audioControllerTypes';
 
 export type AudioControllerRefs = {
   analyzerRef: MutableRefObject<AnalyzerLike | null>;
   audioContextRef: MutableRefObject<AudioContext | null>;
-  audioRef: MutableRefObject<{ bass: number; treble: number }>;
+  audioRef: MutableRefObject<AudioLevels>;
   microphoneStreamRef: MutableRefObject<MediaStream | null>;
   sharedAudioStreamRef: MutableRefObject<MediaStream | null>;
   synthEngineRef: MutableRefObject<SynthEngine | null>;

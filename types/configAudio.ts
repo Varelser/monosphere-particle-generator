@@ -6,12 +6,18 @@ export interface ParticleConfigAudio {
   audioSensitivity: number;
   audioBeatScale: number;
   audioJitterScale: number;
+  audioGateThreshold: number;
+  audioResponseCurve: number;
+  audioPulseDecay: number;
   audioBassMotionScale: number;
   audioBassSizeScale: number;
   audioBassAlphaScale: number;
   audioTrebleMotionScale: number;
   audioTrebleSizeScale: number;
   audioTrebleAlphaScale: number;
+  audioPulseScale: number;
+  audioBurstScale: number;
+  audioScreenScale: number;
   audioLineScale: number;
   audioCameraScale: number;
   synthWaveform: SynthWaveform;

@@ -7,7 +7,7 @@ import {
   isAudioBridgeHostMessage,
 } from './audioBridge';
 import { applySynthSettings, restartSynthSequencer } from './audioSynth';
-import type { AnalyzerLike, Notice, SynthEngine } from './audioControllerTypes';
+import type { AnalyzerLike, AudioLevels, Notice, SynthEngine } from './audioControllerTypes';
 import { startSelectedAudioSource, stopAudioResources } from './audioSourceManager';
 
 type UseAudioControllerArgs = {
@@ -19,7 +19,7 @@ type UseAudioControllerArgs = {
 export function useAudioController({ config, latestConfigRef, setConfig }: UseAudioControllerArgs) {
   const [isAudioActive, setIsAudioActive] = useState(false);
   const [audioNotice, setAudioNotice] = useState<Notice | null>(null);
-  const audioRef = useRef({ bass: 0, treble: 0 });
+  const audioRef = useRef<AudioLevels>({ bass: 0, treble: 0, pulse: 0 });
   const analyzerRef = useRef<AnalyzerLike | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const microphoneStreamRef = useRef<MediaStream | null>(null);
@@ -199,8 +199,13 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
     if (!isAudioActive || !analyzerRef.current) {
       return;
     }
-    return startAudioLevelMonitoring(analyzerRef, audioRef, config.audioSensitivity);
-  }, [config.audioSensitivity, isAudioActive]);
+    return startAudioLevelMonitoring(analyzerRef, audioRef, {
+      sensitivity: config.audioSensitivity,
+      gateThreshold: config.audioGateThreshold,
+      responseCurve: config.audioResponseCurve,
+      pulseDecay: config.audioPulseDecay,
+    });
+  }, [config.audioGateThreshold, config.audioPulseDecay, config.audioResponseCurve, config.audioSensitivity, isAudioActive]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -241,7 +246,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
 
       if (message.type === 'audio-bridge-status') {
         if (!message.active) {
-          audioRef.current = { bass: 0, treble: 0 };
+          audioRef.current = { bass: 0, treble: 0, pulse: 0 };
         }
         setIsAudioActive(message.active);
         setConfig((prev) => ({ ...prev, audioEnabled: message.active }));
@@ -252,7 +257,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
       }
 
       if (message.type === 'audio-bridge-levels') {
-        audioRef.current = { bass: message.bass, treble: message.treble };
+        audioRef.current = { bass: message.bass, treble: message.treble, pulse: message.pulse };
         return;
       }
 
@@ -264,7 +269,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
       }
 
       if (message.type === 'audio-bridge-closed') {
-        audioRef.current = { bass: 0, treble: 0 };
+        audioRef.current = { bass: 0, treble: 0, pulse: 0 };
         setIsAudioActive(false);
         setConfig((prev) => ({ ...prev, audioEnabled: false }));
         if (latestConfigRef.current.audioSourceMode === 'standalone-synth') {

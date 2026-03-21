@@ -133,6 +133,12 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
     <Slider label="Bass Input Gain" value={config.audioBeatScale} min={0} max={3} step={0.1} onChange={(v) => updateConfig('audioBeatScale', v)} />
     <Slider label="Treble Input Gain" value={config.audioJitterScale} min={0} max={3} step={0.1} onChange={(v) => updateConfig('audioJitterScale', v)} />
     <div className="mb-4 mt-4 rounded border border-white/10 bg-black/10 px-3 py-2 text-[10px] uppercase tracking-widest text-white/55">
+      Analysis Dynamics
+    </div>
+    <Slider label="Gate Threshold" value={config.audioGateThreshold} min={0} max={0.35} step={0.01} onChange={(v) => updateConfig('audioGateThreshold', v)} />
+    <Slider label="Response Curve" value={config.audioResponseCurve} min={0.35} max={2.5} step={0.05} onChange={(v) => updateConfig('audioResponseCurve', v)} />
+    <Slider label="Pulse Decay" value={config.audioPulseDecay} min={0.02} max={0.6} step={0.01} onChange={(v) => updateConfig('audioPulseDecay', v)} />
+    <div className="mb-4 mt-4 rounded border border-white/10 bg-black/10 px-3 py-2 text-[10px] uppercase tracking-widest text-white/55">
       Reactive Routing
     </div>
     <Slider label="Bass -> Motion" value={config.audioBassMotionScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBassMotionScale', v)} />
@@ -141,6 +147,9 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
     <Slider label="Treble -> Motion" value={config.audioTrebleMotionScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTrebleMotionScale', v)} />
     <Slider label="Treble -> Size" value={config.audioTrebleSizeScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTrebleSizeScale', v)} />
     <Slider label="Treble -> Opacity" value={config.audioTrebleAlphaScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioTrebleAlphaScale', v)} />
+    <Slider label="Pulse -> Particles" value={config.audioPulseScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioPulseScale', v)} />
+    <Slider label="Pulse -> Burst" value={config.audioBurstScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBurstScale', v)} />
+    <Slider label="Pulse -> Screen FX" value={config.audioScreenScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioScreenScale', v)} />
     <Slider label="Audio -> Lines" value={config.audioLineScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioLineScale', v)} />
     <Slider label="Audio -> Camera" value={config.audioCameraScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioCameraScale', v)} />
   </div>

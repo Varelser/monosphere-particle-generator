@@ -14,7 +14,7 @@ export type AudioBridgeWindowMessage =
 export type AudioBridgeHostMessage =
   | { type: 'audio-bridge-ready'; sessionId: string }
   | { type: 'audio-bridge-status'; sessionId: string; active: boolean; notice?: Notice }
-  | { type: 'audio-bridge-levels'; sessionId: string; bass: number; treble: number }
+  | { type: 'audio-bridge-levels'; sessionId: string; bass: number; treble: number; pulse: number }
   | { type: 'audio-bridge-error'; sessionId: string; message: string }
   | { type: 'audio-bridge-closed'; sessionId: string };
 

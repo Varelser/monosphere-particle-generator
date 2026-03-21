@@ -128,7 +128,7 @@ const App: React.FC = () => {
     if (typeof window === 'undefined' || !import.meta.env.DEV) return;
     (window as Window & {
       __KALO_AUDIO_DEBUG__?: {
-        getLevels: () => { bass: number; treble: number };
+        getLevels: () => { bass: number; treble: number; pulse: number };
       };
     }).__KALO_AUDIO_DEBUG__ = {
       getLevels: () => ({ ...audioRef.current }),

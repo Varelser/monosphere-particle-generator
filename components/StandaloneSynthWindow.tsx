@@ -31,7 +31,7 @@ export const StandaloneSynthWindow: React.FC = () => {
     tone: 'success',
     message: 'Ready. This window will mirror the synth settings from the main app.',
   });
-  const [levels, setLevels] = React.useState({ bass: 0, treble: 0 });
+  const [levels, setLevels] = React.useState({ bass: 0, treble: 0, pulse: 0 });
   const synthRef = React.useRef<SynthEngine | null>(null);
   const configRef = React.useRef(config);
   const levelsRef = React.useRef(levels);
@@ -85,7 +85,12 @@ export const StandaloneSynthWindow: React.FC = () => {
     const readLevels = createAudioLevelReader(synth.analyser);
 
     const tick = (timestamp: number) => {
-      const nextLevels = readLevels(configRef.current.audioSensitivity, levelsRef.current);
+      const nextLevels = readLevels({
+        sensitivity: configRef.current.audioSensitivity,
+        gateThreshold: configRef.current.audioGateThreshold,
+        responseCurve: configRef.current.audioResponseCurve,
+        pulseDecay: configRef.current.audioPulseDecay,
+      }, levelsRef.current);
       levelsRef.current = nextLevels;
       setLevels(nextLevels);
 
@@ -96,6 +101,7 @@ export const StandaloneSynthWindow: React.FC = () => {
           sessionId,
           bass: nextLevels.bass,
           treble: nextLevels.treble,
+          pulse: nextLevels.pulse,
         });
       }
 
@@ -116,7 +122,7 @@ export const StandaloneSynthWindow: React.FC = () => {
     }
 
     setIsActive(false);
-    levelsRef.current = { bass: 0, treble: 0 };
+    levelsRef.current = { bass: 0, treble: 0, pulse: 0 };
     setLevels(levelsRef.current);
     if (nextNotice) {
       setNotice(nextNotice);

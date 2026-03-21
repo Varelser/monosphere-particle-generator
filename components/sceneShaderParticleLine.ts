@@ -15,7 +15,7 @@ export const LINE_VERTEX_SHADER = `
     uniform float uCollisionMode; uniform float uCollisionRadius; uniform float uRepulsion;
   uniform float uAffectPos; uniform vec2 uMouse; uniform float uMouseForce;
   uniform float uMouseRadius; uniform float uIsOrthographic;
-  uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine;
+  uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine; uniform float uAudioPulse;
   uniform float uInterLayerEnabled; uniform int uInterLayerColliderCount; uniform vec4 uInterLayerColliders[MAX_INTER_LAYER_COLLIDERS]; uniform float uInterLayerStrength; uniform float uInterLayerPadding;
   uniform float uConnectDistance;
   uniform float uOpacity;
@@ -95,7 +95,7 @@ export const LINE_VERTEX_SHADER = `
       float lifeProgressB = fract((uTime * 60.0) / lifeB + aData3B.x + uBurstPhase);
       vBurst = max(getBurstEnvelope(lifeProgressA), getBurstEnvelope(lifeProgressB)) * clamp(uBurst, 0.0, 2.0);
     }
-    float audioLineBoost = 1.0 + uAudioBassLine * 0.95 + uAudioTrebleLine * 0.45;
+    float audioLineBoost = 1.0 + uAudioBassLine * 0.95 + uAudioTrebleLine * 0.45 + uAudioPulse * 1.05;
     vAlpha = (1.0 - smoothstep(0.0, uConnectDistance, dist)) * uOpacity * audioLineBoost;
     if (dist > uConnectDistance) vAlpha = 0.0;
     vec3 finalPos = mix(pA, pB, aMix);

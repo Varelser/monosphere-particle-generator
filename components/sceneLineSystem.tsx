@@ -181,6 +181,7 @@ export const LineSystem: React.FC<{
     mat.uniforms.uAudioTrebleMotion.value = uniforms.uAudioTrebleMotion.value;
     mat.uniforms.uAudioBassLine.value = uniforms.uAudioBassLine.value;
     mat.uniforms.uAudioTrebleLine.value = uniforms.uAudioTrebleLine.value;
+    mat.uniforms.uAudioPulse.value = uniforms.uAudioPulse.value;
     mat.uniforms.uConnectDistance.value = connectionDistance;
     mat.uniforms.uOpacity.value = Math.min(1, connectionOpacity * lineImpactBoost);
     mat.uniforms.uLineVelocityGlow.value = layerVelocityGlow;
@@ -251,6 +252,7 @@ export const LineSystem: React.FC<{
           uAudioTrebleMotion: { value: 0 },
           uAudioBassLine: { value: 0 },
           uAudioTrebleLine: { value: 0 },
+          uAudioPulse: { value: 0 },
           uLineVelocityGlow: { value: 0 },
           uLineVelocityAlpha: { value: 0 },
           uLineBurstPulse: { value: 0 },

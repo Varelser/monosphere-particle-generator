@@ -18,7 +18,7 @@ extend({
 });
 
 type AppSceneProps = {
-  audioRef: React.MutableRefObject<{ bass: number; treble: number }>;
+  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
   config: ParticleConfig;
   interLayerContactAmount: number;
   isPlaying: boolean;
@@ -67,7 +67,7 @@ const SceneBackgroundSync: React.FC<{ backgroundColor: ParticleConfig['backgroun
 };
 
 const CameraImpulseRig: React.FC<{
-  audioRef: React.MutableRefObject<{ bass: number; treble: number }>;
+  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
   config: ParticleConfig;
   controlsRef: React.MutableRefObject<OrbitControlsImpl | null>;
   isInteractingRef: React.MutableRefObject<boolean>;
@@ -89,8 +89,10 @@ const CameraImpulseRig: React.FC<{
     const t = clock.getElapsedTime();
     const controls = controlsRef.current;
     const impulse = config.cameraImpulseStrength;
-    const cameraAudioInput = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale * config.audioCameraScale : 0;
-    const burstEnergy = getBurstDriveEnergy(config, t, isPlaying, cameraAudioInput);
+    const cameraAudioInput = config.audioEnabled
+      ? (audioRef.current.bass * config.audioBeatScale + audioRef.current.pulse * config.audioBurstScale * 0.65) * config.audioCameraScale
+      : 0;
+    const burstEnergy = getBurstDriveEnergy(config, t, isPlaying, config.audioEnabled ? audioRef.current.pulse * config.audioBurstScale : 0);
     const needsSync =
       !initializedRef.current ||
       isInteractingRef.current ||
@@ -225,6 +227,7 @@ export const AppScene: React.FC<AppSceneProps> = ({
         )}
       </SceneGroup>
       <ScreenOverlay
+        audioRef={audioRef}
         config={config}
         isPlaying={isPlaying}
         contactAmount={interLayerContactAmount}

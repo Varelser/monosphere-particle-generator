@@ -3,7 +3,7 @@ import { PHYSICS_LOGIC } from './scenePhysicsLogic';
 export const PARTICLE_VERTEX_SHADER = `
   precision highp float;
   ${PHYSICS_LOGIC}
-  uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha;
+  uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha; uniform float uAudioPulse;
   uniform float uGlobalSpeed; uniform float uGlobalAmp; uniform float uGlobalNoiseScale;
     uniform float uGlobalComplexity;
   uniform float uGlobalEvolution; uniform float uGlobalFidelity; uniform float uGlobalOctaveMult;
@@ -35,8 +35,8 @@ export const PARTICLE_VERTEX_SHADER = `
     float prevTime = max(uTime - 0.04, 0.0);
     float emitterOrbitPhase = uTime * max(0.0, uEmitterOrbitSpeed);
     float prevEmitterOrbitPhase = prevTime * max(0.0, uEmitterOrbitSpeed);
-    float emitterPulse = 1.0 + sin(uTime * max(0.05, uEmitterOrbitSpeed) * 1.6 + aPhase) * uEmitterPulseAmount;
-    float prevEmitterPulse = 1.0 + sin(prevTime * max(0.05, uEmitterOrbitSpeed) * 1.6 + aPhase) * uEmitterPulseAmount;
+    float emitterPulse = 1.0 + sin(uTime * max(0.05, uEmitterOrbitSpeed) * 1.6 + aPhase) * uEmitterPulseAmount + uAudioPulse * (0.08 + aVariant * 0.08);
+    float prevEmitterPulse = 1.0 + sin(prevTime * max(0.05, uEmitterOrbitSpeed) * 1.6 + aPhase) * uEmitterPulseAmount + uAudioPulse * (0.06 + aVariant * 0.05);
     vec3 animatedOffset = aOffset * emitterPulse;
     vec3 prevAnimatedOffset = aOffset * prevEmitterPulse;
     if (uEmitterOrbitRadius > 0.0 || length(aOffset.xz) > 0.001) {
@@ -127,6 +127,7 @@ export const PARTICLE_VERTEX_SHADER = `
       vec3 driftDir = normalize(uWind + vec3(0.0001));
       pos += driftDir * amp * uTrailDrift * (0.25 + lifeProgress * 0.75) * 0.06;
     }
+    pos += normalize((pos - animatedOffset) + vec3(0.0001)) * amp * uAudioPulse * mix(0.018, 0.072, aVariant);
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     vec4 prevMvPosition = modelViewMatrix * vec4(prevPos, 1.0);
@@ -154,7 +155,7 @@ export const PARTICLE_VERTEX_SHADER = `
       return;
     }
     float sizeScale = (uIsOrthographic > 0.5) ? 1.0 : min(2.5, 400.0 / max(1.0, dist));
-    float audioSizeBoost = 1.0 + uAudioBassSize * 1.85 + uAudioTrebleSize * 0.45;
+    float audioSizeBoost = 1.0 + uAudioBassSize * 1.85 + uAudioTrebleSize * 0.45 + uAudioPulse * 1.15;
     float pSize = aSizeFactor * uGlobalSize * sizeScale * audioSizeBoost;
     float lifeSizeScale = 1.0;
     if (uLife > 0.0) {
@@ -186,7 +187,7 @@ export const PARTICLE_VERTEX_SHADER = `
     vSpriteMode = uSpriteMode;
     vVariant = aVariant;
     vBurst = clamp(uBurst, 0.0, 1.0) * (1.0 - smoothstep(0.0, 0.6, lifeProgress));
-    float audioAlphaBoost = 1.0 + uAudioBassAlpha * 0.95 + uAudioTrebleAlpha * 0.35;
+    float audioAlphaBoost = 1.0 + uAudioBassAlpha * 0.95 + uAudioTrebleAlpha * 0.35 + uAudioPulse * 0.85;
     vAlpha = uOpacity * lifeAlpha * (1.0 - smoothstep(2000.0, 5000.0, length(pos))) * (1.0 + clamp(uTrail, 0.0, 0.99) * 0.35) * audioAlphaBoost;
   }
 `;

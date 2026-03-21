@@ -33,7 +33,7 @@ export const ParticleSystem: React.FC<{
   layerIndex: 1 | 2 | 3 | 4;
   isAux?: boolean;
   auxMode?: AuxMode;
-  audioRef: React.MutableRefObject<{ bass: number; treble: number }>;
+  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
   isPlaying: boolean;
   contactAmount: number;
 }> = ({ config, layerIndex, isAux = false, auxMode = 'aux', audioRef, isPlaying, contactAmount }) => {
@@ -93,6 +93,7 @@ export const ParticleSystem: React.FC<{
     uAudioTrebleAlpha: { value: 0 },
     uAudioBassLine: { value: 0 },
     uAudioTrebleLine: { value: 0 },
+    uAudioPulse: { value: 0 },
     uGlobalSpeed: { value: 1.0 },
     uGlobalAmp: { value: 1.0 },
     uGlobalNoiseScale: { value: 1.0 },
@@ -161,6 +162,7 @@ export const ParticleSystem: React.FC<{
     if (isPlaying) mat.uniforms.uTime.value += delta;
     const bassInput = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
     const trebleInput = config.audioEnabled ? audioRef.current.treble * config.audioJitterScale : 0;
+    const pulseInput = config.audioEnabled ? audioRef.current.pulse * config.audioPulseScale : 0;
     if (config.audioEnabled) {
       mat.uniforms.uAudioBass.value = bassInput;
       mat.uniforms.uAudioTreble.value = trebleInput;
@@ -172,6 +174,7 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioTrebleAlpha.value = trebleInput * config.audioTrebleAlphaScale;
       mat.uniforms.uAudioBassLine.value = bassInput * config.audioLineScale;
       mat.uniforms.uAudioTrebleLine.value = trebleInput * config.audioLineScale;
+      mat.uniforms.uAudioPulse.value = pulseInput;
     } else {
       mat.uniforms.uAudioBass.value = 0;
       mat.uniforms.uAudioTreble.value = 0;
@@ -183,6 +186,7 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioTrebleAlpha.value = 0;
       mat.uniforms.uAudioBassLine.value = 0;
       mat.uniforms.uAudioTrebleLine.value = 0;
+      mat.uniforms.uAudioPulse.value = 0;
     }
 
     mat.uniforms.uMouse.value.set(state.pointer.x, state.pointer.y);
