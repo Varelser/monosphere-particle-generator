@@ -23,14 +23,7 @@ import { usePresetTransition } from './lib/usePresetTransition';
 import { useSequenceController } from './lib/useSequenceController';
 import { AUDIO_BRIDGE_MODE_PARAM, AUDIO_BRIDGE_MODE_VALUE } from './lib/audioBridge';
 
-const App: React.FC = () => {
-  const appMode = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get(AUDIO_BRIDGE_MODE_PARAM)
-    : null;
-  if (appMode === AUDIO_BRIDGE_MODE_VALUE) {
-    return <StandaloneSynthWindow />;
-  }
-
+const AppBody: React.FC = () => {
   const isPublicLibraryMode = LIBRARY_SCOPE === 'public';
   const [config, setConfig] = useState<ParticleConfig>(() => (
     isPublicLibraryMode ? normalizeConfig(PUBLIC_PRESET_LIBRARY.currentConfig) : loadInitialPrivateConfig()
@@ -336,6 +329,16 @@ const App: React.FC = () => {
       />
     </div>
   );
+};
+
+const App: React.FC = () => {
+  const appMode = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get(AUDIO_BRIDGE_MODE_PARAM)
+    : null;
+  if (appMode === AUDIO_BRIDGE_MODE_VALUE) {
+    return <StandaloneSynthWindow />;
+  }
+  return <AppBody />;
 };
 
 export default App;

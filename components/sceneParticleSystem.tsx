@@ -28,6 +28,159 @@ function getBurstWaveformValue(mode: ParticleConfig['layer2BurstWaveform']) {
   return 0;
 }
 
+type LayerParams = {
+  speed: number;
+  amp: number;
+  freq: number;
+  noise: number;
+  complexity: number;
+  evol: number;
+  fid: number;
+  oct: number;
+  rad: number;
+  size: number;
+  grav: number;
+  resistance: number;
+  vis: number;
+  fluid: number;
+  affectPos: number;
+  moveWithWind: number;
+  neighborForce: number;
+  collisionMode: number;
+  collisionRadius: number;
+  repulsion: number;
+  trail: number;
+  life: number;
+  lifeSpread: number;
+  lifeSizeBoost: number;
+  lifeSizeTaper: number;
+  burst: number;
+  burstPhase: number;
+  burstMode: number;
+  burstWaveform: number;
+  burstSweepSpeed: number;
+  burstSweepTilt: number;
+  burstConeWidth: number;
+  emitterOrbitSpeed: number;
+  emitterOrbitRadius: number;
+  emitterPulseAmount: number;
+  trailDrag: number;
+  trailTurbulence: number;
+  trailDrift: number;
+  velocityGlow: number;
+  velocityAlpha: number;
+  flickerAmount: number;
+  flickerSpeed: number;
+  streak: number;
+  spriteMode: number;
+  auxLife: number;
+  mouseForce: number;
+  mouseRadius: number;
+  windX: number;
+  windY: number;
+  windZ: number;
+  spinX: number;
+  spinY: number;
+  spinZ: number;
+  boundaryY: number;
+  boundaryEnabled: number;
+  boundaryBounce: number;
+};
+
+function resolveLayerParams(
+  config: ParticleConfig,
+  layerIndex: 2 | 3,
+  isAux: boolean,
+  auxMode: AuxMode,
+): LayerParams {
+  const L = layerIndex;
+
+  const baseSize = L === 2 ? config.layer2BaseSize : config.layer3BaseSize;
+  const size = isAux
+    ? (auxMode === 'spark' ? baseSize * (L === 2 ? 0.42 : 0.36) : baseSize * 0.6)
+    : baseSize;
+
+  const baseTrail = L === 2 ? config.layer2Trail : config.layer3Trail;
+  const sparkTrailMin = L === 2 ? 0.85 : 0.9;
+  const trail = isAux && auxMode === 'spark' ? Math.max(baseTrail, sparkTrailMin) : baseTrail;
+
+  const baseBurst = L === 2 ? config.layer2Burst : config.layer3Burst;
+  const sparkBurst = L === 2 ? config.layer2SparkBurst : config.layer3SparkBurst;
+  const burst = isAux && auxMode === 'spark' ? Math.max(baseBurst, sparkBurst) : baseBurst;
+
+  const baseStreak = L === 2 ? config.layer2Streak : config.layer3Streak;
+  const sparkStreakMin = L === 2 ? 1.2 : 1.25;
+  const streak = isAux && auxMode === 'spark' ? Math.max(baseStreak, sparkStreakMin) : baseStreak;
+
+  const baseSpriteMode = L === 2 ? config.layer2SpriteMode : config.layer3SpriteMode;
+  const spriteMode = isAux && auxMode === 'spark'
+    ? getSpriteModeValue('spark')
+    : getSpriteModeValue(baseSpriteMode);
+
+  const baseAuxLife = L === 2 ? config.layer2AuxLife : config.layer3AuxLife;
+  const baseSparkLife = L === 2 ? config.layer2SparkLife : config.layer3SparkLife;
+  const auxLife = auxMode === 'spark' ? baseSparkLife : baseAuxLife;
+
+  return {
+    speed: L === 2 ? config.layer2FlowSpeed : config.layer3FlowSpeed,
+    amp: L === 2 ? config.layer2FlowAmplitude : config.layer3FlowAmplitude,
+    freq: L === 2 ? config.layer2FlowFrequency : config.layer3FlowFrequency,
+    noise: L === 2 ? config.layer2NoiseScale : config.layer3NoiseScale,
+    complexity: L === 2 ? config.layer2Complexity : config.layer3Complexity,
+    evol: L === 2 ? config.layer2Evolution : config.layer3Evolution,
+    fid: L === 2 ? config.layer2Fidelity : config.layer3Fidelity,
+    oct: L === 2 ? config.layer2OctaveMult : config.layer3OctaveMult,
+    rad: config.sphereRadius * (L === 2 ? config.layer2RadiusScale : config.layer3RadiusScale),
+    size,
+    grav: L === 2 ? config.layer2Gravity : config.layer3Gravity,
+    resistance: L === 2 ? config.layer2Resistance : config.layer3Resistance,
+    vis: L === 2 ? config.layer2Viscosity : config.layer3Viscosity,
+    fluid: L === 2 ? config.layer2FluidForce : config.layer3FluidForce,
+    affectPos: L === 2 ? config.layer2AffectPos : config.layer3AffectPos,
+    moveWithWind: L === 2 ? config.layer2MoveWithWind : config.layer3MoveWithWind,
+    neighborForce: L === 2 ? config.layer2InteractionNeighbor : config.layer3InteractionNeighbor,
+    collisionMode: (L === 2 ? config.layer2CollisionMode : config.layer3CollisionMode) === 'world' ? 1 : 0,
+    collisionRadius: L === 2 ? config.layer2CollisionRadius : config.layer3CollisionRadius,
+    repulsion: L === 2 ? config.layer2Repulsion : config.layer3Repulsion,
+    trail,
+    life: L === 2 ? config.layer2Life : config.layer3Life,
+    lifeSpread: L === 2 ? config.layer2LifeSpread : config.layer3LifeSpread,
+    lifeSizeBoost: L === 2 ? config.layer2LifeSizeBoost : config.layer3LifeSizeBoost,
+    lifeSizeTaper: L === 2 ? config.layer2LifeSizeTaper : config.layer3LifeSizeTaper,
+    burst,
+    burstPhase: L === 2 ? config.layer2BurstPhase : config.layer3BurstPhase,
+    burstMode: getBurstModeValue(L === 2 ? config.layer2BurstMode : config.layer3BurstMode),
+    burstWaveform: getBurstWaveformValue(L === 2 ? config.layer2BurstWaveform : config.layer3BurstWaveform),
+    burstSweepSpeed: L === 2 ? config.layer2BurstSweepSpeed : config.layer3BurstSweepSpeed,
+    burstSweepTilt: L === 2 ? config.layer2BurstSweepTilt : config.layer3BurstSweepTilt,
+    burstConeWidth: L === 2 ? config.layer2BurstConeWidth : config.layer3BurstConeWidth,
+    emitterOrbitSpeed: L === 2 ? config.layer2EmitterOrbitSpeed : config.layer3EmitterOrbitSpeed,
+    emitterOrbitRadius: L === 2 ? config.layer2EmitterOrbitRadius : config.layer3EmitterOrbitRadius,
+    emitterPulseAmount: L === 2 ? config.layer2EmitterPulseAmount : config.layer3EmitterPulseAmount,
+    trailDrag: L === 2 ? config.layer2TrailDrag : config.layer3TrailDrag,
+    trailTurbulence: L === 2 ? config.layer2TrailTurbulence : config.layer3TrailTurbulence,
+    trailDrift: L === 2 ? config.layer2TrailDrift : config.layer3TrailDrift,
+    velocityGlow: L === 2 ? config.layer2VelocityGlow : config.layer3VelocityGlow,
+    velocityAlpha: L === 2 ? config.layer2VelocityAlpha : config.layer3VelocityAlpha,
+    flickerAmount: L === 2 ? config.layer2FlickerAmount : config.layer3FlickerAmount,
+    flickerSpeed: L === 2 ? config.layer2FlickerSpeed : config.layer3FlickerSpeed,
+    streak,
+    spriteMode,
+    auxLife,
+    mouseForce: L === 2 ? config.layer2MouseForce : config.layer3MouseForce,
+    mouseRadius: L === 2 ? config.layer2MouseRadius : config.layer3MouseRadius,
+    windX: L === 2 ? config.layer2WindX : config.layer3WindX,
+    windY: L === 2 ? config.layer2WindY : config.layer3WindY,
+    windZ: L === 2 ? config.layer2WindZ : config.layer3WindZ,
+    spinX: L === 2 ? config.layer2SpinX : config.layer3SpinX,
+    spinY: L === 2 ? config.layer2SpinY : config.layer3SpinY,
+    spinZ: L === 2 ? config.layer2SpinZ : config.layer3SpinZ,
+    boundaryY: L === 2 ? config.layer2BoundaryY : config.layer3BoundaryY,
+    boundaryEnabled: (L === 2 ? config.layer2BoundaryEnabled : config.layer3BoundaryEnabled) ? 1 : 0,
+    boundaryBounce: L === 2 ? config.layer2BoundaryBounce : config.layer3BoundaryBounce,
+  };
+}
+
 export const ParticleSystem: React.FC<{
   config: ParticleConfig;
   layerIndex: 1 | 2 | 3 | 4;
@@ -36,10 +189,12 @@ export const ParticleSystem: React.FC<{
   audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
   isPlaying: boolean;
   contactAmount: number;
-}> = ({ config, layerIndex, isAux = false, auxMode = 'aux', audioRef, isPlaying, contactAmount }) => {
+}> = React.memo(({ config, layerIndex, isAux = false, auxMode = 'aux', audioRef, isPlaying, contactAmount }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const windRef = useRef(new THREE.Vector3());
   const spinRef = useRef(new THREE.Vector3());
+  const prevAudioEnabledRef = useRef<boolean>(config.audioEnabled);
+
   const interLayerColliders = useMemo(() => {
     if (layerIndex === 4 || isAux) {
       return Array.from({ length: MAX_INTER_LAYER_COLLIDERS }, () => ({ center: new THREE.Vector3(), radius: 0 }));
@@ -165,15 +320,21 @@ export const ParticleSystem: React.FC<{
     if (!meshRef.current) return;
     const mat = meshRef.current.material as THREE.ShaderMaterial;
     if (isPlaying) mat.uniforms.uTime.value += delta;
-    const bassInput = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
-    const trebleInput = config.audioEnabled ? audioRef.current.treble * config.audioJitterScale : 0;
-    const pulseInput = config.audioEnabled ? audioRef.current.pulse * config.audioPulseScale : 0;
-    const morphInput = config.audioEnabled ? audioRef.current.pulse * config.audioMorphScale : 0;
-    const shatterInput = config.audioEnabled ? (trebleInput * 0.75 + pulseInput * 0.35) * config.audioShatterScale : 0;
-    const twistInput = config.audioEnabled ? (bassInput * 0.6 + pulseInput * 0.9) * config.audioTwistScale : 0;
-    const bendInput = config.audioEnabled ? (trebleInput * 0.55 + pulseInput * 0.7) * config.audioBendScale : 0;
-    const warpInput = config.audioEnabled ? (bassInput * 0.35 + trebleInput * 0.35 + pulseInput) * config.audioWarpScale : 0;
+
+    // Audio uniform updates
+    const audioEnabledChanged = prevAudioEnabledRef.current !== config.audioEnabled;
+    prevAudioEnabledRef.current = config.audioEnabled;
+
     if (config.audioEnabled) {
+      const bassInput = audioRef.current.bass * config.audioBeatScale;
+      const trebleInput = audioRef.current.treble * config.audioJitterScale;
+      const pulseInput = audioRef.current.pulse * config.audioPulseScale;
+      const morphInput = audioRef.current.pulse * config.audioMorphScale;
+      const shatterInput = (trebleInput * 0.75 + pulseInput * 0.35) * config.audioShatterScale;
+      const twistInput = (bassInput * 0.6 + pulseInput * 0.9) * config.audioTwistScale;
+      const bendInput = (trebleInput * 0.55 + pulseInput * 0.7) * config.audioBendScale;
+      const warpInput = (bassInput * 0.35 + trebleInput * 0.35 + pulseInput) * config.audioWarpScale;
+
       mat.uniforms.uAudioBass.value = bassInput;
       mat.uniforms.uAudioTreble.value = trebleInput;
       mat.uniforms.uAudioBassMotion.value = bassInput * config.audioBassMotionScale;
@@ -190,7 +351,8 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioTwist.value = twistInput;
       mat.uniforms.uAudioBend.value = bendInput;
       mat.uniforms.uAudioWarp.value = warpInput;
-    } else {
+    } else if (audioEnabledChanged) {
+      // audio が無効になった最初のフレームのみゼロリセット（初期値はすでに0なのでそれ以降は不要）
       mat.uniforms.uAudioBass.value = 0;
       mat.uniforms.uAudioTreble.value = 0;
       mat.uniforms.uAudioBassMotion.value = 0;
@@ -215,10 +377,13 @@ export const ParticleSystem: React.FC<{
     mat.uniforms.uContrast.value = config.contrast;
     mat.uniforms.uInkMode.value = config.particleColor === 'black' ? 1 : 0;
     mat.uniforms.uSoftness.value = config.particleSoftness;
-    const impactGlowBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled ? contactAmount * config.interLayerContactGlowBoost : 0;
+    const impactGlowBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled
+      ? contactAmount * config.interLayerContactGlowBoost
+      : 0;
     mat.uniforms.uGlow.value = Math.min(3, config.particleGlow + impactGlowBoost);
     mat.uniforms.uIsOrthographic.value = config.viewMode === 'orthographic' ? 1 : 0;
 
+    // Layer parameter resolution
     let speed = 0;
     let amp = 0;
     let noise = 1;
@@ -231,9 +396,9 @@ export const ParticleSystem: React.FC<{
     let grav = 0;
     let vis = 0;
     let fluid = 0;
-    let aff = 1;
-    let mf = 0;
-    let mr = 100;
+    let affectPos = 1;
+    let mouseForce = 0;
+    let mouseRadius = 100;
     let complexity = 1;
     let resistance = 0;
     let moveWithWind = 0;
@@ -268,31 +433,157 @@ export const ParticleSystem: React.FC<{
     let auxLife = 100;
     const wind = windRef.current;
     const spin = spinRef.current;
-    let boundY = 0;
-    let boundEn = 0;
-    let boundBn = 0;
+    let boundaryY = 0;
+    let boundaryEnabled = 0;
+    let boundaryBounce = 0;
 
     if (layerIndex === 1) {
-      speed = config.pulseSpeed; amp = config.pulseAmplitude; noise = config.jitter; complexity = Math.max(1, config.jitter * 2); freq = config.jitter; rad = config.sphereRadius; size = config.baseSize;
-    } else if (layerIndex === 2) {
-      speed = config.layer2FlowSpeed; amp = config.layer2FlowAmplitude; freq = config.layer2FlowFrequency; noise = config.layer2NoiseScale; complexity = config.layer2Complexity; evol = config.layer2Evolution; fid = config.layer2Fidelity; oct = config.layer2OctaveMult; rad = config.sphereRadius * config.layer2RadiusScale; size = isAux ? (auxMode === 'spark' ? config.layer2BaseSize * 0.42 : config.layer2BaseSize * 0.6) : config.layer2BaseSize; grav = config.layer2Gravity; resistance = config.layer2Resistance; vis = config.layer2Viscosity; fluid = config.layer2FluidForce; aff = config.layer2AffectPos; moveWithWind = config.layer2MoveWithWind; neighborForce = config.layer2InteractionNeighbor; collisionMode = config.layer2CollisionMode === 'world' ? 1 : 0; collisionRadius = config.layer2CollisionRadius; repulsion = config.layer2Repulsion; trail = isAux && auxMode === 'spark' ? Math.max(config.layer2Trail, 0.85) : config.layer2Trail; life = config.layer2Life; lifeSpread = config.layer2LifeSpread; lifeSizeBoost = config.layer2LifeSizeBoost; lifeSizeTaper = config.layer2LifeSizeTaper; burst = isAux && auxMode === 'spark' ? Math.max(config.layer2Burst, config.layer2SparkBurst) : config.layer2Burst; burstPhase = config.layer2BurstPhase; burstMode = getBurstModeValue(config.layer2BurstMode); burstWaveform = getBurstWaveformValue(config.layer2BurstWaveform); burstSweepSpeed = config.layer2BurstSweepSpeed; burstSweepTilt = config.layer2BurstSweepTilt; burstConeWidth = config.layer2BurstConeWidth; emitterOrbitSpeed = config.layer2EmitterOrbitSpeed; emitterOrbitRadius = config.layer2EmitterOrbitRadius; emitterPulseAmount = config.layer2EmitterPulseAmount; trailDrag = config.layer2TrailDrag; trailTurbulence = config.layer2TrailTurbulence; trailDrift = config.layer2TrailDrift; velocityGlow = config.layer2VelocityGlow; velocityAlpha = config.layer2VelocityAlpha; flickerAmount = config.layer2FlickerAmount; flickerSpeed = config.layer2FlickerSpeed; streak = isAux && auxMode === 'spark' ? Math.max(config.layer2Streak, 1.2) : config.layer2Streak; spriteMode = isAux && auxMode === 'spark' ? getSpriteModeValue('spark') : getSpriteModeValue(config.layer2SpriteMode); auxLife = auxMode === 'spark' ? config.layer2SparkLife : config.layer2AuxLife; mf = config.layer2MouseForce; mr = config.layer2MouseRadius; wind.set(config.layer2WindX, config.layer2WindY, config.layer2WindZ); spin.set(config.layer2SpinX, config.layer2SpinY, config.layer2SpinZ); boundY = config.layer2BoundaryY; boundEn = config.layer2BoundaryEnabled ? 1 : 0; boundBn = config.layer2BoundaryBounce;
-    } else if (layerIndex === 3) {
-      speed = config.layer3FlowSpeed; amp = config.layer3FlowAmplitude; freq = config.layer3FlowFrequency; noise = config.layer3NoiseScale; complexity = config.layer3Complexity; evol = config.layer3Evolution; fid = config.layer3Fidelity; oct = config.layer3OctaveMult; rad = config.sphereRadius * config.layer3RadiusScale; size = isAux ? (auxMode === 'spark' ? config.layer3BaseSize * 0.36 : config.layer3BaseSize * 0.6) : config.layer3BaseSize; grav = config.layer3Gravity; resistance = config.layer3Resistance; vis = config.layer3Viscosity; fluid = config.layer3FluidForce; aff = config.layer3AffectPos; moveWithWind = config.layer3MoveWithWind; neighborForce = config.layer3InteractionNeighbor; collisionMode = config.layer3CollisionMode === 'world' ? 1 : 0; collisionRadius = config.layer3CollisionRadius; repulsion = config.layer3Repulsion; trail = isAux && auxMode === 'spark' ? Math.max(config.layer3Trail, 0.9) : config.layer3Trail; life = config.layer3Life; lifeSpread = config.layer3LifeSpread; lifeSizeBoost = config.layer3LifeSizeBoost; lifeSizeTaper = config.layer3LifeSizeTaper; burst = isAux && auxMode === 'spark' ? Math.max(config.layer3Burst, config.layer3SparkBurst) : config.layer3Burst; burstPhase = config.layer3BurstPhase; burstMode = getBurstModeValue(config.layer3BurstMode); burstWaveform = getBurstWaveformValue(config.layer3BurstWaveform); burstSweepSpeed = config.layer3BurstSweepSpeed; burstSweepTilt = config.layer3BurstSweepTilt; burstConeWidth = config.layer3BurstConeWidth; emitterOrbitSpeed = config.layer3EmitterOrbitSpeed; emitterOrbitRadius = config.layer3EmitterOrbitRadius; emitterPulseAmount = config.layer3EmitterPulseAmount; trailDrag = config.layer3TrailDrag; trailTurbulence = config.layer3TrailTurbulence; trailDrift = config.layer3TrailDrift; velocityGlow = config.layer3VelocityGlow; velocityAlpha = config.layer3VelocityAlpha; flickerAmount = config.layer3FlickerAmount; flickerSpeed = config.layer3FlickerSpeed; streak = isAux && auxMode === 'spark' ? Math.max(config.layer3Streak, 1.25) : config.layer3Streak; spriteMode = isAux && auxMode === 'spark' ? getSpriteModeValue('spark') : getSpriteModeValue(config.layer3SpriteMode); auxLife = auxMode === 'spark' ? config.layer3SparkLife : config.layer3AuxLife; mf = config.layer3MouseForce; mr = config.layer3MouseRadius; wind.set(config.layer3WindX, config.layer3WindY, config.layer3WindZ); spin.set(config.layer3SpinX, config.layer3SpinY, config.layer3SpinZ); boundY = config.layer3BoundaryY; boundEn = config.layer3BoundaryEnabled ? 1 : 0; boundBn = config.layer3BoundaryBounce;
+      speed = config.pulseSpeed;
+      amp = config.pulseAmplitude;
+      noise = config.jitter;
+      complexity = Math.max(1, config.jitter * 2);
+      freq = config.jitter;
+      rad = config.sphereRadius;
+      size = config.baseSize;
+    } else if (layerIndex === 2 || layerIndex === 3) {
+      const p = resolveLayerParams(config, layerIndex, isAux, auxMode);
+      speed = p.speed;
+      amp = p.amp;
+      freq = p.freq;
+      noise = p.noise;
+      complexity = p.complexity;
+      evol = p.evol;
+      fid = p.fid;
+      oct = p.oct;
+      rad = p.rad;
+      size = p.size;
+      grav = p.grav;
+      resistance = p.resistance;
+      vis = p.vis;
+      fluid = p.fluid;
+      affectPos = p.affectPos;
+      moveWithWind = p.moveWithWind;
+      neighborForce = p.neighborForce;
+      collisionMode = p.collisionMode;
+      collisionRadius = p.collisionRadius;
+      repulsion = p.repulsion;
+      trail = p.trail;
+      life = p.life;
+      lifeSpread = p.lifeSpread;
+      lifeSizeBoost = p.lifeSizeBoost;
+      lifeSizeTaper = p.lifeSizeTaper;
+      burst = p.burst;
+      burstPhase = p.burstPhase;
+      burstMode = p.burstMode;
+      burstWaveform = p.burstWaveform;
+      burstSweepSpeed = p.burstSweepSpeed;
+      burstSweepTilt = p.burstSweepTilt;
+      burstConeWidth = p.burstConeWidth;
+      emitterOrbitSpeed = p.emitterOrbitSpeed;
+      emitterOrbitRadius = p.emitterOrbitRadius;
+      emitterPulseAmount = p.emitterPulseAmount;
+      trailDrag = p.trailDrag;
+      trailTurbulence = p.trailTurbulence;
+      trailDrift = p.trailDrift;
+      velocityGlow = p.velocityGlow;
+      velocityAlpha = p.velocityAlpha;
+      flickerAmount = p.flickerAmount;
+      flickerSpeed = p.flickerSpeed;
+      streak = p.streak;
+      spriteMode = p.spriteMode;
+      auxLife = p.auxLife;
+      mouseForce = p.mouseForce;
+      mouseRadius = p.mouseRadius;
+      wind.set(p.windX, p.windY, p.windZ);
+      spin.set(p.spinX, p.spinY, p.spinZ);
+      boundaryY = p.boundaryY;
+      boundaryEnabled = p.boundaryEnabled;
+      boundaryBounce = p.boundaryBounce;
     } else {
-      speed = config.ambientSpeed; amp = config.ambientSpread; size = config.ambientBaseSize; rad = config.ambientSpread;
+      // layerIndex === 4 (ambient)
+      speed = config.ambientSpeed;
+      amp = config.ambientSpread;
+      size = config.ambientBaseSize;
+      rad = config.ambientSpread;
     }
 
-    mat.uniforms.uGlobalSpeed.value = speed; mat.uniforms.uGlobalAmp.value = amp; mat.uniforms.uGlobalFreq.value = freq; mat.uniforms.uGlobalNoiseScale.value = noise; mat.uniforms.uGlobalComplexity.value = complexity; mat.uniforms.uGlobalEvolution.value = evol; mat.uniforms.uGlobalFidelity.value = fid; mat.uniforms.uGlobalOctaveMult.value = oct; mat.uniforms.uGlobalRadius.value = rad;
-    const impactSizeBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled ? 1 + contactAmount * config.interLayerContactSizeBoost : 1;
+    // Apply layer params to uniforms
+    mat.uniforms.uGlobalSpeed.value = speed;
+    mat.uniforms.uGlobalAmp.value = amp;
+    mat.uniforms.uGlobalFreq.value = freq;
+    mat.uniforms.uGlobalNoiseScale.value = noise;
+    mat.uniforms.uGlobalComplexity.value = complexity;
+    mat.uniforms.uGlobalEvolution.value = evol;
+    mat.uniforms.uGlobalFidelity.value = fid;
+    mat.uniforms.uGlobalOctaveMult.value = oct;
+    mat.uniforms.uGlobalRadius.value = rad;
+
+    const impactSizeBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled
+      ? 1 + contactAmount * config.interLayerContactSizeBoost
+      : 1;
     mat.uniforms.uGlobalSize.value = size * impactSizeBoost;
-    mat.uniforms.uGravity.value = grav; mat.uniforms.uViscosity.value = vis; mat.uniforms.uFluidForce.value = fluid; mat.uniforms.uResistance.value = resistance; mat.uniforms.uMoveWithWind.value = moveWithWind; mat.uniforms.uNeighborForce.value = neighborForce; mat.uniforms.uCollisionMode.value = collisionMode; mat.uniforms.uCollisionRadius.value = collisionRadius; mat.uniforms.uRepulsion.value = repulsion; mat.uniforms.uTrail.value = trail; mat.uniforms.uLife.value = life; mat.uniforms.uLifeSpread.value = lifeSpread; mat.uniforms.uLifeSizeBoost.value = lifeSizeBoost; mat.uniforms.uLifeSizeTaper.value = lifeSizeTaper; mat.uniforms.uBurst.value = burst; mat.uniforms.uBurstPhase.value = burstPhase; mat.uniforms.uBurstMode.value = burstMode; mat.uniforms.uBurstWaveform.value = burstWaveform; mat.uniforms.uBurstSweepSpeed.value = burstSweepSpeed; mat.uniforms.uBurstSweepTilt.value = burstSweepTilt; mat.uniforms.uBurstConeWidth.value = burstConeWidth; mat.uniforms.uEmitterOrbitSpeed.value = emitterOrbitSpeed; mat.uniforms.uEmitterOrbitRadius.value = emitterOrbitRadius; mat.uniforms.uEmitterPulseAmount.value = emitterPulseAmount; mat.uniforms.uTrailDrag.value = trailDrag; mat.uniforms.uTrailTurbulence.value = trailTurbulence; mat.uniforms.uTrailDrift.value = trailDrift; mat.uniforms.uVelocityGlow.value = velocityGlow; mat.uniforms.uVelocityAlpha.value = velocityAlpha; mat.uniforms.uFlickerAmount.value = flickerAmount; mat.uniforms.uFlickerSpeed.value = flickerSpeed; mat.uniforms.uStreak.value = streak; mat.uniforms.uSpriteMode.value = spriteMode; mat.uniforms.uAuxLife.value = auxLife; mat.uniforms.uIsAux.value = isAux ? 1 : 0; mat.uniforms.uAffectPos.value = aff; mat.uniforms.uMouseForce.value = mf; mat.uniforms.uMouseRadius.value = mr; mat.uniforms.uWind.value.copy(wind); mat.uniforms.uSpin.value.copy(spin); mat.uniforms.uBoundaryY.value = boundY; mat.uniforms.uBoundaryEnabled.value = boundEn; mat.uniforms.uBoundaryBounce.value = boundBn;
-    const collisionAudioBoost = config.interLayerAudioReactive && config.audioEnabled ? 1 + (bassInput * config.interLayerAudioBoost) : 1;
+
+    mat.uniforms.uGravity.value = grav;
+    mat.uniforms.uViscosity.value = vis;
+    mat.uniforms.uFluidForce.value = fluid;
+    mat.uniforms.uResistance.value = resistance;
+    mat.uniforms.uMoveWithWind.value = moveWithWind;
+    mat.uniforms.uNeighborForce.value = neighborForce;
+    mat.uniforms.uCollisionMode.value = collisionMode;
+    mat.uniforms.uCollisionRadius.value = collisionRadius;
+    mat.uniforms.uRepulsion.value = repulsion;
+    mat.uniforms.uTrail.value = trail;
+    mat.uniforms.uLife.value = life;
+    mat.uniforms.uLifeSpread.value = lifeSpread;
+    mat.uniforms.uLifeSizeBoost.value = lifeSizeBoost;
+    mat.uniforms.uLifeSizeTaper.value = lifeSizeTaper;
+    mat.uniforms.uBurst.value = burst;
+    mat.uniforms.uBurstPhase.value = burstPhase;
+    mat.uniforms.uBurstMode.value = burstMode;
+    mat.uniforms.uBurstWaveform.value = burstWaveform;
+    mat.uniforms.uBurstSweepSpeed.value = burstSweepSpeed;
+    mat.uniforms.uBurstSweepTilt.value = burstSweepTilt;
+    mat.uniforms.uBurstConeWidth.value = burstConeWidth;
+    mat.uniforms.uEmitterOrbitSpeed.value = emitterOrbitSpeed;
+    mat.uniforms.uEmitterOrbitRadius.value = emitterOrbitRadius;
+    mat.uniforms.uEmitterPulseAmount.value = emitterPulseAmount;
+    mat.uniforms.uTrailDrag.value = trailDrag;
+    mat.uniforms.uTrailTurbulence.value = trailTurbulence;
+    mat.uniforms.uTrailDrift.value = trailDrift;
+    mat.uniforms.uVelocityGlow.value = velocityGlow;
+    mat.uniforms.uVelocityAlpha.value = velocityAlpha;
+    mat.uniforms.uFlickerAmount.value = flickerAmount;
+    mat.uniforms.uFlickerSpeed.value = flickerSpeed;
+    mat.uniforms.uStreak.value = streak;
+    mat.uniforms.uSpriteMode.value = spriteMode;
+    mat.uniforms.uAuxLife.value = auxLife;
+    mat.uniforms.uIsAux.value = isAux ? 1 : 0;
+    mat.uniforms.uAffectPos.value = affectPos;
+    mat.uniforms.uMouseForce.value = mouseForce;
+    mat.uniforms.uMouseRadius.value = mouseRadius;
+    mat.uniforms.uWind.value.copy(wind);
+    mat.uniforms.uSpin.value.copy(spin);
+    mat.uniforms.uBoundaryY.value = boundaryY;
+    mat.uniforms.uBoundaryEnabled.value = boundaryEnabled;
+    mat.uniforms.uBoundaryBounce.value = boundaryBounce;
+
+    // Inter-layer collision
+    const bassInputForCollision = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
+    const collisionAudioBoost = config.interLayerAudioReactive && config.audioEnabled
+      ? 1 + (bassInputForCollision * config.interLayerAudioBoost)
+      : 1;
     mat.uniforms.uInterLayerEnabled.value = config.interLayerCollisionEnabled && layerIndex <= 3 && !isAux ? 1 : 0;
     mat.uniforms.uInterLayerColliderCount.value = activeInterLayerColliderCount;
-    interLayerColliders.forEach((collider, colliderIndex) => {
-      const uniformCollider = mat.uniforms.uInterLayerColliders.value[colliderIndex] as THREE.Vector4;
-      uniformCollider.set(collider.center.x, collider.center.y, collider.center.z, collider.radius);
-    });
+
+    if (activeInterLayerColliderCount > 0) {
+      for (let i = 0; i < activeInterLayerColliderCount; i++) {
+        const collider = interLayerColliders[i];
+        if (!collider) continue;
+        const uniformCollider = mat.uniforms.uInterLayerColliders.value[i] as THREE.Vector4;
+        uniformCollider.set(collider.center.x, collider.center.y, collider.center.z, collider.radius);
+      }
+    }
+
     mat.uniforms.uInterLayerStrength.value = config.interLayerCollisionStrength * collisionAudioBoost;
     mat.uniforms.uInterLayerPadding.value = config.interLayerCollisionPadding;
   });
@@ -327,4 +618,5 @@ export const ParticleSystem: React.FC<{
       {showLines && <LineSystem config={config} layerIndex={layerIndex as 2 | 3} particleData={data} uniforms={uniforms} globalRadius={lineRadius} connectionDistance={connDist} connectionOpacity={connOp} contactAmount={contactAmount} isPlaying={isPlaying} />}
     </group>
   );
-};
+});
+ParticleSystem.displayName = 'ParticleSystem';

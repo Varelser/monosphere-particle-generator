@@ -140,7 +140,7 @@ const CameraImpulseRig: React.FC<{
   return null;
 };
 
-export const AppScene: React.FC<AppSceneProps> = ({
+export const AppScene: React.FC<AppSceneProps> = React.memo(({
   audioRef,
   config,
   interLayerContactAmount,
@@ -236,4 +236,5 @@ export const AppScene: React.FC<AppSceneProps> = ({
       />
     </Canvas>
   );
-};
+});
+AppScene.displayName = 'AppScene';

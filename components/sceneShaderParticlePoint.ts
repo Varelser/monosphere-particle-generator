@@ -80,18 +80,26 @@ export const PARTICLE_VERTEX_SHADER = `
         uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
         uInterLayerPadding
     );
-    vec3 prevPos = calculateLayerPosition(
-        aPosition, prevAnimatedOffset, aMotionType, prevTime,
-        speed, amp, freq, radius,
-        aPhase, aRandom, uWind, noiseScale,
-        uGlobalEvolution, complexity, uFluidForce, uViscosity,
-        uGlobalFidelity, uGlobalOctaveMult, uAffectPos,
-        uResistance, uMoveWithWind, uNeighborForce,
-        uCollisionMode, uCollisionRadius, uRepulsion,
-        uGravity, uBoundaryY, uBoundaryEnabled, uBoundaryBounce,
-        uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
-        uInterLayerPadding
-    );
+    // prevPos is only needed for trail/streak rendering. Skip the full physics recalculation
+    // when neither trail nor streak is active (uniform is the same for all particles in the warp).
+    bool needPrevPos = (uTrail > 0.001 || uStreak > 0.001);
+    vec3 prevPos = pos; // default: no delta → trailDelta = 0
+
+    if (needPrevPos) {
+      prevPos = calculateLayerPosition(
+          aPosition, prevAnimatedOffset, aMotionType, prevTime,
+          speed, amp, freq, radius,
+          aPhase, aRandom, uWind, noiseScale,
+          uGlobalEvolution, complexity, uFluidForce, uViscosity,
+          uGlobalFidelity, uGlobalOctaveMult, uAffectPos,
+          uResistance, uMoveWithWind, uNeighborForce,
+          uCollisionMode, uCollisionRadius, uRepulsion,
+          uGravity, uBoundaryY, uBoundaryEnabled, uBoundaryBounce,
+          uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
+          uInterLayerPadding
+      );
+    }
+
     if (uAudioMorph > 0.001) {
       float altMotionType = mod(aMotionType + 17.0 + floor(aVariant * 11.0), 90.0);
       vec3 morphPos = calculateLayerPosition(
@@ -106,33 +114,40 @@ export const PARTICLE_VERTEX_SHADER = `
         uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
         uInterLayerPadding
       );
-      vec3 prevMorphPos = calculateLayerPosition(
-        aPosition, prevAnimatedOffset, altMotionType, prevTime * (1.02 + aVariant * 0.12),
-        speed, amp, freq * (1.0 + aVariant * 0.15), radius,
-        aPhase + 1.7, aRandom, uWind, noiseScale,
-        uGlobalEvolution, complexity, uFluidForce, uViscosity,
-        uGlobalFidelity, uGlobalOctaveMult, uAffectPos,
-        uResistance, uMoveWithWind, uNeighborForce,
-        uCollisionMode, uCollisionRadius, uRepulsion,
-        uGravity, uBoundaryY, uBoundaryEnabled, uBoundaryBounce,
-        uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
-        uInterLayerPadding
-      );
       float morphMix = clamp(uAudioMorph * (0.22 + aVariant * 0.48), 0.0, 0.92);
       pos = mix(pos, morphPos, morphMix);
-      prevPos = mix(prevPos, prevMorphPos, morphMix);
+
+      if (needPrevPos) {
+        vec3 prevMorphPos = calculateLayerPosition(
+          aPosition, prevAnimatedOffset, altMotionType, prevTime * (1.02 + aVariant * 0.12),
+          speed, amp, freq * (1.0 + aVariant * 0.15), radius,
+          aPhase + 1.7, aRandom, uWind, noiseScale,
+          uGlobalEvolution, complexity, uFluidForce, uViscosity,
+          uGlobalFidelity, uGlobalOctaveMult, uAffectPos,
+          uResistance, uMoveWithWind, uNeighborForce,
+          uCollisionMode, uCollisionRadius, uRepulsion,
+          uGravity, uBoundaryY, uBoundaryEnabled, uBoundaryBounce,
+          uInterLayerEnabled, uInterLayerColliderCount, uInterLayerColliders, uInterLayerStrength,
+          uInterLayerPadding
+        );
+        prevPos = mix(prevPos, prevMorphPos, morphMix);
+      }
     }
 
     if (length(uSpin) > 0.001) {
         pos = rotate(pos, vec3(1,0,0), uSpin.x * uTime);
         pos = rotate(pos, vec3(0,1,0), uSpin.y * uTime);
         pos = rotate(pos, vec3(0,0,1), uSpin.z * uTime);
-        prevPos = rotate(prevPos, vec3(1,0,0), uSpin.x * prevTime);
-        prevPos = rotate(prevPos, vec3(0,1,0), uSpin.y * prevTime);
-        prevPos = rotate(prevPos, vec3(0,0,1), uSpin.z * prevTime);
+        if (needPrevPos) {
+          prevPos = rotate(prevPos, vec3(1,0,0), uSpin.x * prevTime);
+          prevPos = rotate(prevPos, vec3(0,1,0), uSpin.y * prevTime);
+          prevPos = rotate(prevPos, vec3(0,0,1), uSpin.z * prevTime);
+        }
     }
     pos = applyAudioSpatialWarp(pos, animatedOffset, uTime, amp, aPhase, aVariant);
-    prevPos = applyAudioSpatialWarp(prevPos, prevAnimatedOffset, prevTime, amp, aPhase, aVariant);
+    if (needPrevPos) {
+      prevPos = applyAudioSpatialWarp(prevPos, prevAnimatedOffset, prevTime, amp, aPhase, aVariant);
+    }
 
     float lifeAlpha = 1.0;
     float lifeProgress = 0.0;
