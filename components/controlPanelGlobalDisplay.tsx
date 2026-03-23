@@ -175,6 +175,49 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
           <Slider label="CA Offset" value={config.postChromaticAberrationOffset} min={0} max={0.01} step={0.0001} onChange={(v) => updateConfig('postChromaticAberrationOffset', v)} />
         )}
       </div>
+      <div className="mt-5 rounded border border-white/10 bg-white/5 p-3">
+        <div className="mb-3 text-[10px] uppercase tracking-widest font-bold text-white/70">GPGPU Layer (GPU Particles)</div>
+        <Toggle
+          label="GPGPU Enabled"
+          value={config.gpgpuEnabled}
+          options={[{ label: 'On', val: true }, { label: 'Off', val: false }]}
+          onChange={(v) => updateConfig('gpgpuEnabled', v)}
+        />
+        {config.gpgpuEnabled && (
+          <>
+            <Slider label="Particle Count" value={config.gpgpuCount} min={1024} max={1048576} step={1024} onChange={(v) => updateConfig('gpgpuCount', v)} />
+            <Slider label="Gravity" value={config.gpgpuGravity} min={0} max={2} step={0.01} onChange={(v) => updateConfig('gpgpuGravity', v)} />
+            <Slider label="Turbulence" value={config.gpgpuTurbulence} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuTurbulence', v)} />
+            <Slider label="Bounce" value={config.gpgpuBounce} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuBounce', v)} />
+            <Slider label="Boundary Radius" value={config.gpgpuBounceRadius} min={10} max={500} step={5} onChange={(v) => updateConfig('gpgpuBounceRadius', v)} />
+            <Slider label="Particle Size" value={config.gpgpuSize} min={0.5} max={10} step={0.1} onChange={(v) => updateConfig('gpgpuSize', v)} />
+            <Slider label="Speed" value={config.gpgpuSpeed} min={0.1} max={5} step={0.1} onChange={(v) => updateConfig('gpgpuSpeed', v)} />
+            <Slider label="Opacity" value={config.gpgpuOpacity} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuOpacity', v)} />
+            <div className="mb-4">
+              <div className="mb-2 text-[10px] uppercase tracking-widest font-medium opacity-70">GPGPU Color</div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={config.gpgpuColor}
+                  onChange={(e) => updateConfig('gpgpuColor', e.target.value)}
+                  className="h-8 w-12 cursor-pointer rounded border border-white/20 bg-transparent p-0.5"
+                />
+                <span className="font-mono text-[10px] opacity-60">{config.gpgpuColor.toUpperCase()}</span>
+                <button onClick={() => updateConfig('gpgpuColor', '#88aaff')} className="ml-auto rounded border border-white/15 bg-white/5 px-2 py-1 text-[9px] uppercase hover:bg-white/10">Reset</button>
+              </div>
+            </div>
+            <Toggle
+              label="Audio Reactive"
+              value={config.gpgpuAudioReactive}
+              options={[{ label: 'On', val: true }, { label: 'Off', val: false }]}
+              onChange={(v) => updateConfig('gpgpuAudioReactive', v)}
+            />
+            {config.gpgpuAudioReactive && (
+              <Slider label="Audio Blast" value={config.gpgpuAudioBlast} min={0} max={4} step={0.05} onChange={(v) => updateConfig('gpgpuAudioBlast', v)} />
+            )}
+          </>
+        )}
+      </div>
       <Toggle label="Depth Fog" value={config.depthFogEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('depthFogEnabled', v)} />
       {config.depthFogEnabled && (
         <>

@@ -304,6 +304,20 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   layer3SparkDiffusion: 2.2,
   layer3SparkBurst: 1.05,
 
+  // GPGPU Layer
+  gpgpuEnabled: false,
+  gpgpuCount: 65536,
+  gpgpuGravity: 0.2,
+  gpgpuTurbulence: 0.4,
+  gpgpuBounce: 0.65,
+  gpgpuBounceRadius: 150,
+  gpgpuSize: 1.5,
+  gpgpuSpeed: 1.0,
+  gpgpuColor: '#88aaff',
+  gpgpuOpacity: 0.7,
+  gpgpuAudioReactive: false,
+  gpgpuAudioBlast: 1.5,
+
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,
   sdfShape: 'sphere' as const,

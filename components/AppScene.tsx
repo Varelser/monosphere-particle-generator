@@ -9,6 +9,7 @@ import type { ParticleConfig } from '../types';
 import { getConfigPerformanceScore } from '../lib/performanceHints';
 import { getBurstDriveEnergy } from './sceneBurstDrive';
 import { ParticleSystem, SceneGroup, ScreenOverlay, ScreenshotManager } from './scenePrimitives';
+import { GpgpuSystem } from './sceneGpgpuSystem';
 
 extend({
   InstancedMesh: THREE.InstancedMesh,
@@ -226,6 +227,9 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
         )}
         {config.ambientEnabled && (
           <ParticleSystem config={config} layerIndex={4} audioRef={audioRef} isPlaying={isPlaying} contactAmount={interLayerContactAmount} />
+        )}
+        {config.gpgpuEnabled && (
+          <GpgpuSystem config={config} audioRef={audioRef} isPlaying={isPlaying} />
         )}
       </SceneGroup>
       <ScreenOverlay
