@@ -258,6 +258,7 @@ const GEOM_VERT = /* glsl */ `
   uniform sampler2D uVelTex;
   uniform float uGeomScale;
   uniform float uVelocityAlign;
+  varying vec3 vNormal;
 
   mat3 lookRot(vec3 dir) {
     vec3 up = abs(dir.y) < 0.99 ? vec3(0,1,0) : vec3(1,0,0);
@@ -269,21 +270,31 @@ const GEOM_VERT = /* glsl */ `
   void main() {
     vec3 instancePos = texture2D(uPosTex, aTexCoord).xyz;
     vec3 vel         = texture2D(uVelTex, aTexCoord).xyz;
-    vec3 local       = position * uGeomScale;
+    mat3 rot = mat3(1.0);
     if (uVelocityAlign > 0.5) {
       float spd = length(vel);
-      if (spd > 0.01) local = lookRot(vel / spd) * local;
+      if (spd > 0.01) rot = lookRot(vel / spd);
     }
+    vec3 local = rot * (position * uGeomScale);
+    vNormal = normalize(normalMatrix * rot * normal);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(instancePos + local, 1.0);
   }
 `;
 
-// ── Instanced geometry fragment ──
+// ── Instanced geometry fragment (Lambert + specular) ──
 const GEOM_FRAG = /* glsl */ `
   precision highp float;
   uniform vec3  uColor;
   uniform float uOpacity;
-  void main() { gl_FragColor = vec4(uColor, uOpacity); }
+  varying vec3 vNormal;
+  void main() {
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(vec3(0.5, 1.0, 0.8));
+    float diff = max(0.0, dot(N, L)) * 0.7 + 0.3;
+    vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
+    float spec = pow(max(0.0, dot(N, H)), 24.0) * 0.35;
+    gl_FragColor = vec4(uColor * diff + spec, uOpacity);
+  }
 `;
 
 // ── Helpers ──
@@ -454,7 +465,7 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uVelTex:       { value: null },
       uColor:        { value: new THREE.Color(config.gpgpuColor) },
       uOpacity:      { value: config.gpgpuOpacity },
-      uGeomScale:    { value: config.gpgpuSize * 0.5 },
+      uGeomScale:    { value: config.gpgpuBounceRadius * 0.02 },
       uVelocityAlign:{ value: 0 },
     },
     vertexShader: GEOM_VERT, fragmentShader: GEOM_FRAG,
@@ -624,7 +635,7 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       geomMat.uniforms.uVelTex.value        = velOut.texture;
       geomMat.uniforms.uColor.value.setStyle(config.gpgpuColor);
       geomMat.uniforms.uOpacity.value       = config.gpgpuOpacity;
-      geomMat.uniforms.uGeomScale.value     = config.gpgpuSize * 0.5 * config.gpgpuGeomScale;
+      geomMat.uniforms.uGeomScale.value     = config.gpgpuBounceRadius * 0.02 * config.gpgpuGeomScale;
       geomMat.uniforms.uVelocityAlign.value = config.gpgpuGeomVelocityAlign ? 1 : 0;
     }
   });

@@ -57,6 +57,20 @@ function getDefaultCameraPosition(config: ParticleConfig) {
   return new THREE.Vector3(0, 0, config.cameraDistance + 200);
 }
 
+// Sync orthographic zoom to match perspective camera's visible area
+const OrthoZoomSync: React.FC<{ config: ParticleConfig }> = ({ config }) => {
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  React.useLayoutEffect(() => {
+    if (config.viewMode !== 'orthographic') return;
+    const fovDeg = config.perspective / 20;
+    const worldHalfH = (config.cameraDistance + 200) * Math.tan(fovDeg * Math.PI / 360);
+    (camera as unknown as THREE.OrthographicCamera).zoom = Math.max(0.1, size.height / 2 / worldHalfH);
+    camera.updateProjectionMatrix();
+  }, [config.viewMode, config.perspective, config.cameraDistance, size.height, camera]);
+  return null;
+};
+
 const SceneBackgroundSync: React.FC<{ backgroundColor: ParticleConfig['backgroundColor'] }> = ({ backgroundColor }) => {
   const { gl, scene } = useThree();
 
@@ -177,7 +191,6 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
           key={`ortho-${config.cameraDistance}`}
           makeDefault
           position={[0, 0, 500]}
-          zoom={Math.max(1, 1500 / Math.max(10, config.cameraDistance))}
           far={5000}
           near={0.1}
         />
@@ -191,10 +204,11 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
           near={0.1}
         />
       )}
+      <OrthoZoomSync config={config} />
       <CameraImpulseRig audioRef={audioRef} config={config} controlsRef={controlsRef} isInteractingRef={isInteractingRef} isPlaying={isPlaying} />
       <ScreenshotManager config={config} saveTrigger={saveTrigger} />
       <OrbitControls
-        key={`controls-${config.cameraDistance}`}
+        key={`controls-${config.cameraDistance}-${config.viewMode}`}
         ref={controlsRef}
         enabled={config.cameraControlMode !== 'auto'}
         enablePan={config.cameraControlMode !== 'auto'}
