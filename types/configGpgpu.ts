@@ -51,4 +51,29 @@ export interface ParticleConfigGpgpu {
   gpgpuAttractorType: 'lorenz' | 'rossler' | 'thomas';
   gpgpuAttractorStrength: number;
   gpgpuAttractorScale: number;
+  // Vortex
+  gpgpuVortexEnabled: boolean;
+  gpgpuVortexStrength: number;
+  gpgpuVortexTilt: number;
+  // Wind
+  gpgpuWindEnabled: boolean;
+  gpgpuWindStrength: number;
+  gpgpuWindX: number;
+  gpgpuWindY: number;
+  gpgpuWindZ: number;
+  gpgpuWindGust: number;
+  // Gravity Well
+  gpgpuWellEnabled: boolean;
+  gpgpuWellStrength: number;
+  gpgpuWellSoftening: number;
+  gpgpuWellOrbit: number;
+  // Elastic Spring
+  gpgpuElasticEnabled: boolean;
+  gpgpuElasticStrength: number;
+  // Magnetic (Lorentz)
+  gpgpuMagneticEnabled: boolean;
+  gpgpuMagneticStrength: number;
+  gpgpuMagneticBX: number;
+  gpgpuMagneticBY: number;
+  gpgpuMagneticBZ: number;
 }

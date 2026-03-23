@@ -41,6 +41,26 @@ const SIM_VEL_FRAG = /* glsl */ `
   uniform int   uAttractorType;
   uniform float uAttractorStrength;
   uniform float uAttractorScale;
+  uniform bool  uVortexEnabled;
+  uniform float uVortexStrength;
+  uniform float uVortexTilt;
+  uniform bool  uWindEnabled;
+  uniform float uWindStrength;
+  uniform float uWindX;
+  uniform float uWindY;
+  uniform float uWindZ;
+  uniform float uWindGust;
+  uniform bool  uWellEnabled;
+  uniform float uWellStrength;
+  uniform float uWellSoftening;
+  uniform float uWellOrbit;
+  uniform bool  uElasticEnabled;
+  uniform float uElasticStrength;
+  uniform bool  uMagneticEnabled;
+  uniform float uMagneticStrength;
+  uniform float uMagneticBX;
+  uniform float uMagneticBY;
+  uniform float uMagneticBZ;
   varying vec2 vUv;
 
   vec3 hash3(vec3 p) {
@@ -157,6 +177,44 @@ const SIM_VEL_FRAG = /* glsl */ `
         dv = vec3(sin(ap.y)-0.208*ap.x, sin(ap.z)-0.208*ap.y, sin(ap.x)-0.208*ap.z);
       }
       vel += normalize(dv + vec3(0.0001)) * uAttractorStrength * uDelta * 40.0;
+    }
+
+    // Vortex
+    if (uVortexEnabled) {
+      vec3 axis = normalize(vec3(sin(uVortexTilt), cos(uVortexTilt), 0.0));
+      vec3 tangent = cross(axis, pos);
+      float tLen = length(tangent);
+      if (tLen > 0.001) vel += (tangent / tLen) * uVortexStrength * uDelta * 80.0;
+    }
+
+    // Wind
+    if (uWindEnabled) {
+      vec3 gust = vec3(
+        vnoise(pos * 0.01 + vec3(uTime * 0.3, 0.0, 0.0)),
+        vnoise(pos * 0.01 + vec3(1.7, uTime * 0.25, 0.0)),
+        vnoise(pos * 0.01 + vec3(0.0, 3.1, uTime * 0.2))
+      ) * uWindGust;
+      vel += (normalize(vec3(uWindX, uWindY, uWindZ) + vec3(0.0001)) * uWindStrength + gust) * uDelta * 30.0;
+    }
+
+    // Gravity Well
+    if (uWellEnabled) {
+      vec3 toCenter = -pos;
+      float d = length(toCenter) + uWellSoftening;
+      vel += (toCenter / (d * d)) * uWellStrength * uDelta * 2000.0;
+      vec3 tangent2 = cross(normalize(toCenter + vec3(0.001, 0.0, 0.0)), vec3(0.0, 1.0, 0.0));
+      vel += tangent2 * uWellOrbit * uDelta * 50.0;
+    }
+
+    // Elastic Spring
+    if (uElasticEnabled) {
+      vel -= pos * uElasticStrength * uDelta * 2.0;
+    }
+
+    // Magnetic / Lorentz
+    if (uMagneticEnabled) {
+      vec3 B = normalize(vec3(uMagneticBX, uMagneticBY, uMagneticBZ) + vec3(0.0001));
+      vel += cross(vel, B) * uMagneticStrength * uDelta * 0.8;
     }
 
     float spd = length(vel);
@@ -434,6 +492,26 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uAttractorType:     { value: 0 },
       uAttractorStrength: { value: 1.0 },
       uAttractorScale:    { value: 8.0 },
+      uVortexEnabled:    { value: false },
+      uVortexStrength:   { value: 1.0 },
+      uVortexTilt:       { value: 0.0 },
+      uWindEnabled:      { value: false },
+      uWindStrength:     { value: 1.0 },
+      uWindX:            { value: 1.0 },
+      uWindY:            { value: 0.0 },
+      uWindZ:            { value: 0.0 },
+      uWindGust:         { value: 0.3 },
+      uWellEnabled:      { value: false },
+      uWellStrength:     { value: 1.0 },
+      uWellSoftening:    { value: 10.0 },
+      uWellOrbit:        { value: 0.5 },
+      uElasticEnabled:   { value: false },
+      uElasticStrength:  { value: 0.5 },
+      uMagneticEnabled:  { value: false },
+      uMagneticStrength: { value: 1.0 },
+      uMagneticBX:       { value: 0.0 },
+      uMagneticBY:       { value: 1.0 },
+      uMagneticBZ:       { value: 0.0 },
     },
     vertexShader: SIM_VERT, fragmentShader: SIM_VEL_FRAG,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -667,6 +745,26 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     velSimMat.uniforms.uAttractorType.value     = config.gpgpuAttractorType === 'lorenz' ? 0 : config.gpgpuAttractorType === 'rossler' ? 1 : 2;
     velSimMat.uniforms.uAttractorStrength.value = config.gpgpuAttractorStrength;
     velSimMat.uniforms.uAttractorScale.value    = config.gpgpuAttractorScale;
+    velSimMat.uniforms.uVortexEnabled.value    = config.gpgpuVortexEnabled;
+    velSimMat.uniforms.uVortexStrength.value   = config.gpgpuVortexStrength;
+    velSimMat.uniforms.uVortexTilt.value       = config.gpgpuVortexTilt;
+    velSimMat.uniforms.uWindEnabled.value      = config.gpgpuWindEnabled;
+    velSimMat.uniforms.uWindStrength.value     = config.gpgpuWindStrength;
+    velSimMat.uniforms.uWindX.value            = config.gpgpuWindX;
+    velSimMat.uniforms.uWindY.value            = config.gpgpuWindY;
+    velSimMat.uniforms.uWindZ.value            = config.gpgpuWindZ;
+    velSimMat.uniforms.uWindGust.value         = config.gpgpuWindGust;
+    velSimMat.uniforms.uWellEnabled.value      = config.gpgpuWellEnabled;
+    velSimMat.uniforms.uWellStrength.value     = config.gpgpuWellStrength;
+    velSimMat.uniforms.uWellSoftening.value    = config.gpgpuWellSoftening;
+    velSimMat.uniforms.uWellOrbit.value        = config.gpgpuWellOrbit;
+    velSimMat.uniforms.uElasticEnabled.value   = config.gpgpuElasticEnabled;
+    velSimMat.uniforms.uElasticStrength.value  = config.gpgpuElasticStrength;
+    velSimMat.uniforms.uMagneticEnabled.value  = config.gpgpuMagneticEnabled;
+    velSimMat.uniforms.uMagneticStrength.value = config.gpgpuMagneticStrength;
+    velSimMat.uniforms.uMagneticBX.value       = config.gpgpuMagneticBX;
+    velSimMat.uniforms.uMagneticBY.value       = config.gpgpuMagneticBY;
+    velSimMat.uniforms.uMagneticBZ.value       = config.gpgpuMagneticBZ;
     simMeshRef.current.material = velSimMat;
     glCtx.setRenderTarget(velOut); glCtx.render(simScene, simCamera);
 

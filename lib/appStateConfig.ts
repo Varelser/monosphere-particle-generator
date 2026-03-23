@@ -349,6 +349,31 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuAttractorType: 'lorenz' as const,
   gpgpuAttractorStrength: 1.0,
   gpgpuAttractorScale: 8.0,
+  // Vortex
+  gpgpuVortexEnabled: false,
+  gpgpuVortexStrength: 1.0,
+  gpgpuVortexTilt: 0.0,
+  // Wind
+  gpgpuWindEnabled: false,
+  gpgpuWindStrength: 1.0,
+  gpgpuWindX: 1.0,
+  gpgpuWindY: 0.0,
+  gpgpuWindZ: 0.0,
+  gpgpuWindGust: 0.3,
+  // Gravity Well
+  gpgpuWellEnabled: false,
+  gpgpuWellStrength: 1.0,
+  gpgpuWellSoftening: 10.0,
+  gpgpuWellOrbit: 0.5,
+  // Elastic Spring
+  gpgpuElasticEnabled: false,
+  gpgpuElasticStrength: 0.5,
+  // Magnetic
+  gpgpuMagneticEnabled: false,
+  gpgpuMagneticStrength: 1.0,
+  gpgpuMagneticBX: 0.0,
+  gpgpuMagneticBY: 1.0,
+  gpgpuMagneticBZ: 0.0,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,
