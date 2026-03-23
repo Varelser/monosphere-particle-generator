@@ -387,6 +387,69 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
                 </>
               )}
             </div>
+
+            {/* SPH Fluid */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="SPH Fluid" value={config.gpgpuSphEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuSphEnabled', v)} />
+              {config.gpgpuSphEnabled && (
+                <>
+                  <Slider label="Pressure" value={config.gpgpuSphPressure} min={0} max={20} step={0.1} onChange={(v) => updateConfig('gpgpuSphPressure', v)} />
+                  <Slider label="Viscosity" value={config.gpgpuSphViscosity} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuSphViscosity', v)} />
+                  <Slider label="Interaction Radius" value={config.gpgpuSphRadius} min={5} max={200} step={5} onChange={(v) => updateConfig('gpgpuSphRadius', v)} />
+                  <Slider label="Rest Density" value={config.gpgpuSphRestDensity} min={0.1} max={10} step={0.1} onChange={(v) => updateConfig('gpgpuSphRestDensity', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Vector Field */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Vector Field" value={config.gpgpuVFieldEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuVFieldEnabled', v)} />
+              {config.gpgpuVFieldEnabled && (
+                <>
+                  <Toggle
+                    label="Field Type"
+                    value={config.gpgpuVFieldType}
+                    options={[{ label: 'Dipole', val: 'dipole' }, { label: 'Saddle', val: 'saddle' }, { label: 'Spiral', val: 'spiral' }, { label: 'Source', val: 'source' }]}
+                    onChange={(v) => updateConfig('gpgpuVFieldType', v)}
+                  />
+                  <Slider label="Strength" value={config.gpgpuVFieldStrength} min={0} max={10} step={0.1} onChange={(v) => updateConfig('gpgpuVFieldStrength', v)} />
+                  <Slider label="Scale" value={config.gpgpuVFieldScale} min={0.001} max={0.05} step={0.001} onChange={(v) => updateConfig('gpgpuVFieldScale', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Spring */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Spring (to Spawn)" value={config.gpgpuSpringEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuSpringEnabled', v)} />
+              {config.gpgpuSpringEnabled && (
+                <Slider label="Strength" value={config.gpgpuSpringStrength} min={0} max={10} step={0.1} onChange={(v) => updateConfig('gpgpuSpringStrength', v)} />
+              )}
+            </div>
+
+            {/* Verlet Integration */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Verlet Integration" value={config.gpgpuVerletEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuVerletEnabled', v)} />
+            </div>
+
+            {/* SDF Collider */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="SDF Collider" value={config.gpgpuSdfEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuSdfEnabled', v)} />
+              {config.gpgpuSdfEnabled && (
+                <>
+                  <Toggle
+                    label="Shape"
+                    value={config.gpgpuSdfShape}
+                    options={[{ label: 'Sphere', val: 'sphere' }, { label: 'Box', val: 'box' }, { label: 'Torus', val: 'torus' }, { label: 'Capsule', val: 'capsule' }]}
+                    onChange={(v) => updateConfig('gpgpuSdfShape', v)}
+                  />
+                  <Slider label="Size" value={config.gpgpuSdfSize} min={5} max={300} step={5} onChange={(v) => updateConfig('gpgpuSdfSize', v)} />
+                  <Slider label="Bounce" value={config.gpgpuSdfBounce} min={0} max={2} step={0.05} onChange={(v) => updateConfig('gpgpuSdfBounce', v)} />
+                  <Slider label="Center X" value={config.gpgpuSdfX} min={-300} max={300} step={5} onChange={(v) => updateConfig('gpgpuSdfX', v)} />
+                  <Slider label="Center Y" value={config.gpgpuSdfY} min={-300} max={300} step={5} onChange={(v) => updateConfig('gpgpuSdfY', v)} />
+                  <Slider label="Center Z" value={config.gpgpuSdfZ} min={-300} max={300} step={5} onChange={(v) => updateConfig('gpgpuSdfZ', v)} />
+                </>
+              )}
+            </div>
           </>
         )}
       </div>

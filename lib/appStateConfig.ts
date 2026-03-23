@@ -374,6 +374,30 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuMagneticBX: 0.0,
   gpgpuMagneticBY: 1.0,
   gpgpuMagneticBZ: 0.0,
+  // SPH Fluid
+  gpgpuSphEnabled: false,
+  gpgpuSphPressure: 3.0,
+  gpgpuSphViscosity: 0.5,
+  gpgpuSphRadius: 40.0,
+  gpgpuSphRestDensity: 2.0,
+  // Vector Field
+  gpgpuVFieldEnabled: false,
+  gpgpuVFieldType: 'spiral' as const,
+  gpgpuVFieldStrength: 1.0,
+  gpgpuVFieldScale: 0.005,
+  // Spring (to spawn pos)
+  gpgpuSpringEnabled: false,
+  gpgpuSpringStrength: 1.0,
+  // Verlet Integration
+  gpgpuVerletEnabled: false,
+  // SDF Collider
+  gpgpuSdfEnabled: false,
+  gpgpuSdfShape: 'sphere' as const,
+  gpgpuSdfX: 0.0,
+  gpgpuSdfY: 0.0,
+  gpgpuSdfZ: 0.0,
+  gpgpuSdfSize: 80.0,
+  gpgpuSdfBounce: 0.5,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

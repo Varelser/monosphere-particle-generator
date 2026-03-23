@@ -76,4 +76,28 @@ export interface ParticleConfigGpgpu {
   gpgpuMagneticBX: number;
   gpgpuMagneticBY: number;
   gpgpuMagneticBZ: number;
+  // SPH Fluid
+  gpgpuSphEnabled: boolean;
+  gpgpuSphPressure: number;
+  gpgpuSphViscosity: number;
+  gpgpuSphRadius: number;
+  gpgpuSphRestDensity: number;
+  // Vector Field
+  gpgpuVFieldEnabled: boolean;
+  gpgpuVFieldType: 'dipole' | 'saddle' | 'spiral' | 'source';
+  gpgpuVFieldStrength: number;
+  gpgpuVFieldScale: number;
+  // Spring (to spawn pos)
+  gpgpuSpringEnabled: boolean;
+  gpgpuSpringStrength: number;
+  // Verlet Integration
+  gpgpuVerletEnabled: boolean;
+  // SDF Collider
+  gpgpuSdfEnabled: boolean;
+  gpgpuSdfShape: 'sphere' | 'box' | 'torus' | 'capsule';
+  gpgpuSdfX: number;
+  gpgpuSdfY: number;
+  gpgpuSdfZ: number;
+  gpgpuSdfSize: number;
+  gpgpuSdfBounce: number;
 }

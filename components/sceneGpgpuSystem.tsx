@@ -61,6 +61,25 @@ const SIM_VEL_FRAG = /* glsl */ `
   uniform float uMagneticBX;
   uniform float uMagneticBY;
   uniform float uMagneticBZ;
+  uniform bool  uSphEnabled;
+  uniform float uSphPressure;
+  uniform float uSphViscosity;
+  uniform float uSphRadius;
+  uniform float uSphRestDensity;
+  uniform bool  uVFieldEnabled;
+  uniform int   uVFieldType;
+  uniform float uVFieldStrength;
+  uniform float uVFieldScale;
+  uniform bool  uSpringEnabled;
+  uniform float uSpringStrength;
+  uniform sampler2D uInitPosTex;
+  uniform bool  uSdfEnabled;
+  uniform int   uSdfShape;
+  uniform float uSdfX;
+  uniform float uSdfY;
+  uniform float uSdfZ;
+  uniform float uSdfSize;
+  uniform float uSdfBounce;
   varying vec2 vUv;
 
   vec3 hash3(vec3 p) {
@@ -217,6 +236,91 @@ const SIM_VEL_FRAG = /* glsl */ `
       vel += cross(vel, B) * uMagneticStrength * uDelta * 0.8;
     }
 
+    // SPH Fluid Simulation
+    if (uSphEnabled) {
+      float density = 0.0;
+      vec3 pressureForce = vec3(0.0);
+      vec3 viscForce = vec3(0.0);
+      float h2 = uSphRadius * uSphRadius;
+      float stride = uTexSizeF / float(uNBodySamples);
+      for (int i = 0; i < 64; i++) {
+        if (i >= uNBodySamples) break;
+        float si = float(i) * stride;
+        vec2 sUv = (vec2(mod(si, uTexSizeF), floor(si / uTexSizeF)) + 0.5) / uTexSizeF;
+        if (length(sUv - vUv) < 1.5 / uTexSizeF) continue;
+        vec3 oPos = texture2D(uPosTex, sUv).xyz;
+        vec3 oVel = texture2D(uVelTex, sUv).xyz;
+        vec3 r = pos - oPos;
+        float r2 = dot(r, r);
+        if (r2 < h2 && r2 > 0.001) {
+          float q = sqrt(r2) / uSphRadius;
+          float w = max(0.0, 1.0 - q * q);
+          density += w;
+          float pressure = uSphPressure * max(0.0, density - uSphRestDensity);
+          pressureForce += normalize(r + vec3(0.0001)) * pressure * w;
+          viscForce += (oVel - vel) * w * uSphViscosity;
+        }
+      }
+      vel += (pressureForce + viscForce) * uDelta * 15.0;
+    }
+
+    // Vector Field
+    if (uVFieldEnabled) {
+      vec3 p = pos * uVFieldScale;
+      float pr = length(p) + 0.001;
+      vec3 f;
+      if (uVFieldType == 0) { // dipole
+        float r3 = pow(pr, 3.0);
+        f = vec3(3.0*p.x*p.y, 3.0*p.y*p.y - dot(p,p), 3.0*p.y*p.z) / r3;
+      } else if (uVFieldType == 1) { // saddle
+        f = vec3(p.x, -p.y, sin(p.z * 3.14159));
+      } else if (uVFieldType == 2) { // spiral sink
+        f = vec3(-p.x - p.z, p.x - p.y, -p.z * 0.5);
+      } else { // source-sink
+        f = p / (pr * pr * pr);
+      }
+      vel += normalize(f + vec3(0.0001)) * uVFieldStrength * uDelta * 30.0;
+    }
+
+    // Spring to Spawn Position
+    if (uSpringEnabled) {
+      vec3 spawnPos = texture2D(uInitPosTex, vUv).xyz;
+      vel += (spawnPos - pos) * uSpringStrength * uDelta * 3.0;
+    }
+
+    // SDF Collider — velocity reflection
+    if (uSdfEnabled) {
+      vec3 sc = vec3(uSdfX, uSdfY, uSdfZ);
+      float sd; vec3 sn;
+      if (uSdfShape == 0) {
+        sd = length(pos - sc) - uSdfSize;
+        sn = normalize(pos - sc + vec3(0.0001));
+      } else if (uSdfShape == 1) {
+        vec3 q = abs(pos - sc) - vec3(uSdfSize);
+        sd = length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+        vec3 dq = pos - sc; vec3 aq = abs(dq); vec3 dd = aq - vec3(uSdfSize);
+        if (max(dd.x, max(dd.y, dd.z)) > 0.0) sn = normalize(max(dd, 0.0) * sign(dq));
+        else if (dd.x > dd.y && dd.x > dd.z) sn = vec3(sign(dq.x), 0.0, 0.0);
+        else if (dd.y > dd.z) sn = vec3(0.0, sign(dq.y), 0.0);
+        else sn = vec3(0.0, 0.0, sign(dq.z));
+      } else if (uSdfShape == 2) {
+        vec3 lp = pos - sc; float r2 = uSdfSize * 0.35;
+        float ringD = length(lp.xz) - uSdfSize;
+        sd = length(vec2(ringD, lp.y)) - r2;
+        float lxz = length(lp.xz) + 0.001;
+        sn = normalize(vec3(lp.x / lxz * ringD, lp.y, lp.z / lxz * ringD));
+      } else {
+        float yc = clamp(pos.y - sc.y, -uSdfSize, uSdfSize);
+        vec3 dp = vec3(pos.x - sc.x, pos.y - sc.y - yc, pos.z - sc.z);
+        sd = length(dp) - uSdfSize * 0.4;
+        sn = normalize(dp + vec3(0.0001));
+      }
+      if (sd < 2.0) {
+        float vn = dot(vel, sn);
+        if (vn < 0.0) vel -= sn * vn * (1.0 + uSdfBounce);
+      }
+    }
+
     float spd = length(vel);
     if (spd > 350.0) vel *= 350.0 / spd;
     vel *= (1.0 - 1.1 * uDelta);
@@ -242,6 +346,15 @@ const SIM_POS_FRAG = /* glsl */ `
   uniform float uBounceRadius;
   uniform bool  uAgeEnabled;
   uniform float uAgeMax;
+  uniform bool  uVerletEnabled;
+  uniform sampler2D uPrevPosTex;
+  uniform bool  uSdfEnabled;
+  uniform int   uSdfShape;
+  uniform float uSdfX;
+  uniform float uSdfY;
+  uniform float uSdfZ;
+  uniform float uSdfSize;
+  uniform float uSdfBounce;
   varying vec2 vUv;
 
   float hash1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -252,14 +365,49 @@ const SIM_POS_FRAG = /* glsl */ `
     float age = posData.w;
     vec3 vel = texture2D(uVelTex, vUv).xyz;
 
-    pos += vel * uDelta * uSpeed * 60.0;
+    if (uVerletEnabled) {
+      vec3 prevPos = texture2D(uPrevPosTex, vUv).xyz;
+      pos = pos + (pos - prevPos) * 0.98 + vel * uDelta * uSpeed * 30.0;
+    } else {
+      pos += vel * uDelta * uSpeed * 60.0;
+    }
+
     float dist = length(pos);
     if (dist > uBounceRadius * 1.05) pos = normalize(pos) * uBounceRadius * 1.05;
+
+    // SDF Collider — position push-out
+    if (uSdfEnabled) {
+      vec3 sc = vec3(uSdfX, uSdfY, uSdfZ);
+      float sd; vec3 sn;
+      if (uSdfShape == 0) {
+        sd = length(pos - sc) - uSdfSize;
+        sn = normalize(pos - sc + vec3(0.0001));
+      } else if (uSdfShape == 1) {
+        vec3 q = abs(pos - sc) - vec3(uSdfSize);
+        sd = length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+        vec3 dq = pos - sc; vec3 aq = abs(dq); vec3 dd = aq - vec3(uSdfSize);
+        if (max(dd.x, max(dd.y, dd.z)) > 0.0) sn = normalize(max(dd, 0.0) * sign(dq));
+        else if (dd.x > dd.y && dd.x > dd.z) sn = vec3(sign(dq.x), 0.0, 0.0);
+        else if (dd.y > dd.z) sn = vec3(0.0, sign(dq.y), 0.0);
+        else sn = vec3(0.0, 0.0, sign(dq.z));
+      } else if (uSdfShape == 2) {
+        vec3 lp = pos - sc; float r2 = uSdfSize * 0.35;
+        float ringD = length(lp.xz) - uSdfSize;
+        sd = length(vec2(ringD, lp.y)) - r2;
+        float lxz = length(lp.xz) + 0.001;
+        sn = normalize(vec3(lp.x / lxz * ringD, lp.y, lp.z / lxz * ringD));
+      } else {
+        float yc = clamp(pos.y - sc.y, -uSdfSize, uSdfSize);
+        vec3 dp = vec3(pos.x - sc.x, pos.y - sc.y - yc, pos.z - sc.z);
+        sd = length(dp) - uSdfSize * 0.4;
+        sn = normalize(dp + vec3(0.0001));
+      }
+      if (sd < 0.0) pos -= sn * sd;
+    }
 
     if (uAgeEnabled) {
       age += uDelta;
       if (age > uAgeMax) {
-        // Respawn at random position inside sphere
         float r   = uBounceRadius * (0.05 + hash1(vUv + vec2(age)) * 0.9);
         float th  = hash1(vUv + vec2(1.3)) * 6.2832;
         float phi = acos(2.0 * hash1(vUv + vec2(2.7)) - 1.0);
@@ -512,6 +660,25 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uMagneticBX:       { value: 0.0 },
       uMagneticBY:       { value: 1.0 },
       uMagneticBZ:       { value: 0.0 },
+      uSphEnabled:      { value: false },
+      uSphPressure:     { value: 3.0 },
+      uSphViscosity:    { value: 0.5 },
+      uSphRadius:       { value: 40.0 },
+      uSphRestDensity:  { value: 2.0 },
+      uVFieldEnabled:   { value: false },
+      uVFieldType:      { value: 2 },
+      uVFieldStrength:  { value: 1.0 },
+      uVFieldScale:     { value: 0.005 },
+      uSpringEnabled:   { value: false },
+      uSpringStrength:  { value: 1.0 },
+      uInitPosTex:      { value: null },
+      uSdfEnabled:      { value: false },
+      uSdfShape:        { value: 0 },
+      uSdfX:            { value: 0.0 },
+      uSdfY:            { value: 0.0 },
+      uSdfZ:            { value: 0.0 },
+      uSdfSize:         { value: 80.0 },
+      uSdfBounce:       { value: 0.5 },
     },
     vertexShader: SIM_VERT, fragmentShader: SIM_VEL_FRAG,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -519,13 +686,22 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
 
   const posSimMat = useMemo(() => new THREE.ShaderMaterial({
     uniforms: {
-      uPosTex:       { value: null },
-      uVelTex:       { value: null },
-      uDelta:        { value: 0.016 },
-      uSpeed:        { value: config.gpgpuSpeed },
-      uBounceRadius: { value: config.gpgpuBounceRadius },
-      uAgeEnabled:   { value: false },
-      uAgeMax:       { value: 8.0 },
+      uPosTex:        { value: null },
+      uVelTex:        { value: null },
+      uDelta:         { value: 0.016 },
+      uSpeed:         { value: config.gpgpuSpeed },
+      uBounceRadius:  { value: config.gpgpuBounceRadius },
+      uAgeEnabled:    { value: false },
+      uAgeMax:        { value: 8.0 },
+      uVerletEnabled: { value: false },
+      uPrevPosTex:    { value: null },
+      uSdfEnabled:    { value: false },
+      uSdfShape:      { value: 0 },
+      uSdfX:          { value: 0.0 },
+      uSdfY:          { value: 0.0 },
+      uSdfZ:          { value: 0.0 },
+      uSdfSize:       { value: 80.0 },
+      uSdfBounce:     { value: 0.5 },
     },
     vertexShader: SIM_VERT, fragmentShader: SIM_POS_FRAG,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -647,15 +823,22 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     velA: THREE.WebGLRenderTarget; velB: THREE.WebGLRenderTarget;
   } | null>(null);
   const pingIsA = useRef(true);
+  const prevPosRTRef = useRef<THREE.WebGLRenderTarget | null>(null);
+  const initPosTexRef = useRef<THREE.DataTexture | null>(null);
 
   useEffect(() => {
     if (rtRef.current) {
       rtRef.current.posA.dispose(); rtRef.current.posB.dispose();
       rtRef.current.velA.dispose(); rtRef.current.velB.dispose();
     }
+    prevPosRTRef.current?.dispose();
+    initPosTexRef.current?.dispose();
+
     const posA = makeRT(texSize), posB = makeRT(texSize);
     const velA = makeRT(texSize), velB = makeRT(texSize);
+    const prevPos = makeRT(texSize);
     rtRef.current = { posA, posB, velA, velB };
+    prevPosRTRef.current = prevPos;
     pingIsA.current = true;
 
     const count = texSize * texSize;
@@ -676,6 +859,11 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       velData[i*4+2] = (Math.random() - 0.5) * 4;
     }
 
+    // Static initPosTex for Spring feature
+    const initTex = new THREE.DataTexture(posData.slice(), texSize, texSize, THREE.RGBAFormat, THREE.FloatType);
+    initTex.needsUpdate = true;
+    initPosTexRef.current = initTex;
+
     const copyScene = new THREE.Scene();
     const copyCam   = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     const copyGeo   = new THREE.PlaneGeometry(2, 2);
@@ -686,6 +874,8 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     const copyMesh = new THREE.Mesh(copyGeo, copyMat);
     copyScene.add(copyMesh);
     gl.setRenderTarget(posA); gl.render(copyScene, copyCam);
+    // Initialize prevPos with same data as posA
+    gl.setRenderTarget(prevPos); gl.render(copyScene, copyCam);
     copyMat.map = velTex; copyMat.needsUpdate = true;
     gl.setRenderTarget(velA); gl.render(copyScene, copyCam);
     gl.setRenderTarget(null);
@@ -695,6 +885,8 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       rtRef.current?.posA.dispose(); rtRef.current?.posB.dispose();
       rtRef.current?.velA.dispose(); rtRef.current?.velB.dispose();
       rtRef.current = null;
+      prevPosRTRef.current?.dispose(); prevPosRTRef.current = null;
+      initPosTexRef.current?.dispose(); initPosTexRef.current = null;
     };
   }, [texSize, gl]);
 
@@ -716,6 +908,14 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     const blast = config.gpgpuAudioReactive && config.audioEnabled
       ? (audioRef.current.bass * 0.55 + audioRef.current.pulse * 0.9) * config.gpgpuAudioBlast
       : 0;
+
+    // Pass 0: blit current pos to prevPos (for Verlet)
+    if (config.gpgpuVerletEnabled && prevPosRTRef.current) {
+      blitMat.uniforms.uTex.value = posIn.texture;
+      simMeshRef.current.material = blitMat;
+      glCtx.setRenderTarget(prevPosRTRef.current);
+      glCtx.render(simScene, simCamera);
+    }
 
     // Pass 1: velocity
     velSimMat.uniforms.uPosTex.value       = posIn.texture;
@@ -765,6 +965,25 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     velSimMat.uniforms.uMagneticBX.value       = config.gpgpuMagneticBX;
     velSimMat.uniforms.uMagneticBY.value       = config.gpgpuMagneticBY;
     velSimMat.uniforms.uMagneticBZ.value       = config.gpgpuMagneticBZ;
+    velSimMat.uniforms.uSphEnabled.value      = config.gpgpuSphEnabled;
+    velSimMat.uniforms.uSphPressure.value     = config.gpgpuSphPressure;
+    velSimMat.uniforms.uSphViscosity.value    = config.gpgpuSphViscosity;
+    velSimMat.uniforms.uSphRadius.value       = config.gpgpuSphRadius;
+    velSimMat.uniforms.uSphRestDensity.value  = config.gpgpuSphRestDensity;
+    velSimMat.uniforms.uVFieldEnabled.value   = config.gpgpuVFieldEnabled;
+    velSimMat.uniforms.uVFieldType.value      = config.gpgpuVFieldType === 'dipole' ? 0 : config.gpgpuVFieldType === 'saddle' ? 1 : config.gpgpuVFieldType === 'spiral' ? 2 : 3;
+    velSimMat.uniforms.uVFieldStrength.value  = config.gpgpuVFieldStrength;
+    velSimMat.uniforms.uVFieldScale.value     = config.gpgpuVFieldScale;
+    velSimMat.uniforms.uSpringEnabled.value   = config.gpgpuSpringEnabled;
+    velSimMat.uniforms.uSpringStrength.value  = config.gpgpuSpringStrength;
+    velSimMat.uniforms.uInitPosTex.value      = initPosTexRef.current;
+    velSimMat.uniforms.uSdfEnabled.value      = config.gpgpuSdfEnabled;
+    velSimMat.uniforms.uSdfShape.value        = config.gpgpuSdfShape === 'sphere' ? 0 : config.gpgpuSdfShape === 'box' ? 1 : config.gpgpuSdfShape === 'torus' ? 2 : 3;
+    velSimMat.uniforms.uSdfX.value            = config.gpgpuSdfX;
+    velSimMat.uniforms.uSdfY.value            = config.gpgpuSdfY;
+    velSimMat.uniforms.uSdfZ.value            = config.gpgpuSdfZ;
+    velSimMat.uniforms.uSdfSize.value         = config.gpgpuSdfSize;
+    velSimMat.uniforms.uSdfBounce.value       = config.gpgpuSdfBounce;
     simMeshRef.current.material = velSimMat;
     glCtx.setRenderTarget(velOut); glCtx.render(simScene, simCamera);
 
@@ -774,8 +993,17 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     posSimMat.uniforms.uDelta.value        = dt;
     posSimMat.uniforms.uSpeed.value        = config.gpgpuSpeed;
     posSimMat.uniforms.uBounceRadius.value = config.gpgpuBounceRadius;
-    posSimMat.uniforms.uAgeEnabled.value   = config.gpgpuAgeEnabled;
-    posSimMat.uniforms.uAgeMax.value       = config.gpgpuAgeMax;
+    posSimMat.uniforms.uAgeEnabled.value    = config.gpgpuAgeEnabled;
+    posSimMat.uniforms.uAgeMax.value        = config.gpgpuAgeMax;
+    posSimMat.uniforms.uVerletEnabled.value = config.gpgpuVerletEnabled;
+    posSimMat.uniforms.uPrevPosTex.value    = prevPosRTRef.current?.texture ?? null;
+    posSimMat.uniforms.uSdfEnabled.value    = config.gpgpuSdfEnabled;
+    posSimMat.uniforms.uSdfShape.value      = config.gpgpuSdfShape === 'sphere' ? 0 : config.gpgpuSdfShape === 'box' ? 1 : config.gpgpuSdfShape === 'torus' ? 2 : 3;
+    posSimMat.uniforms.uSdfX.value          = config.gpgpuSdfX;
+    posSimMat.uniforms.uSdfY.value          = config.gpgpuSdfY;
+    posSimMat.uniforms.uSdfZ.value          = config.gpgpuSdfZ;
+    posSimMat.uniforms.uSdfSize.value       = config.gpgpuSdfSize;
+    posSimMat.uniforms.uSdfBounce.value     = config.gpgpuSdfBounce;
     simMeshRef.current.material = posSimMat;
     glCtx.setRenderTarget(posOut); glCtx.render(simScene, simCamera);
 
