@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
                 return 'r3f-fiber';
               }
 
-              if (id.includes('@react-three/drei') || id.includes('three-stdlib')) {
+              if (id.includes('@react-three/drei') || id.includes('three-stdlib') || id.includes('@react-three/postprocessing') || id.includes('node_modules/postprocessing')) {
                 return 'r3f-drei';
               }
 
