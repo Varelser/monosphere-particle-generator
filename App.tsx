@@ -22,6 +22,7 @@ import { usePresetLibrary } from './lib/usePresetLibrary';
 import { usePresetTransition } from './lib/usePresetTransition';
 import { useSequenceController } from './lib/useSequenceController';
 import { AUDIO_BRIDGE_MODE_PARAM, AUDIO_BRIDGE_MODE_VALUE } from './lib/audioBridge';
+import { CanvasStreamWidget } from './components/canvasStreamWidget';
 
 const AppBody: React.FC = () => {
   const isPublicLibraryMode = LIBRARY_SCOPE === 'public';
@@ -327,6 +328,7 @@ const AppBody: React.FC = () => {
       <ControlPanel
         {...controlPanelProps}
       />
+      <CanvasStreamWidget rendererRef={rendererRef} />
     </div>
   );
 };
