@@ -317,6 +317,18 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuOpacity: 0.7,
   gpgpuAudioReactive: false,
   gpgpuAudioBlast: 1.5,
+  gpgpuTrailEnabled: false,
+  gpgpuTrailLength: 8,
+  gpgpuTrailFade: 0.75,
+  gpgpuTrailVelocityScale: 1.0,
+  gpgpuGeomMode: 'point' as const,
+  gpgpuGeomVelocityAlign: false,
+  gpgpuGeomScale: 1.0,
+  gpgpuNBodyEnabled: false,
+  gpgpuNBodyStrength: 1.0,
+  gpgpuNBodyRepulsion: 5.0,
+  gpgpuNBodySoftening: 2.0,
+  gpgpuNBodySampleCount: 16,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

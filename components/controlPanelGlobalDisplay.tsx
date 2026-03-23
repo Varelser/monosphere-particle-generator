@@ -215,6 +215,47 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
             {config.gpgpuAudioReactive && (
               <Slider label="Audio Blast" value={config.gpgpuAudioBlast} min={0} max={4} step={0.05} onChange={(v) => updateConfig('gpgpuAudioBlast', v)} />
             )}
+
+            {/* Trail */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Motion Trail" value={config.gpgpuTrailEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuTrailEnabled', v)} />
+              {config.gpgpuTrailEnabled && (
+                <>
+                  <Slider label="Trail Length" value={config.gpgpuTrailLength} min={2} max={16} step={1} onChange={(v) => updateConfig('gpgpuTrailLength', v)} />
+                  <Slider label="Trail Fade" value={config.gpgpuTrailFade} min={0} max={0.99} step={0.01} onChange={(v) => updateConfig('gpgpuTrailFade', v)} />
+                  <Slider label="Velocity Scale" value={config.gpgpuTrailVelocityScale} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuTrailVelocityScale', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Instanced Geometry */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle
+                label="Geometry Mode"
+                value={config.gpgpuGeomMode}
+                options={[{ label: 'Point', val: 'point' }, { label: 'Cube', val: 'cube' }, { label: 'Tetra', val: 'tetra' }, { label: 'Octa', val: 'octa' }]}
+                onChange={(v) => updateConfig('gpgpuGeomMode', v)}
+              />
+              {config.gpgpuGeomMode !== 'point' && (
+                <>
+                  <Slider label="Geom Scale" value={config.gpgpuGeomScale} min={0.1} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuGeomScale', v)} />
+                  <Toggle label="Velocity Align" value={config.gpgpuGeomVelocityAlign} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuGeomVelocityAlign', v)} />
+                </>
+              )}
+            </div>
+
+            {/* N-Body */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="N-Body Gravity" value={config.gpgpuNBodyEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuNBodyEnabled', v)} />
+              {config.gpgpuNBodyEnabled && (
+                <>
+                  <Slider label="Strength" value={config.gpgpuNBodyStrength} min={0} max={10} step={0.1} onChange={(v) => updateConfig('gpgpuNBodyStrength', v)} />
+                  <Slider label="Repulsion Radius" value={config.gpgpuNBodyRepulsion} min={0.5} max={50} step={0.5} onChange={(v) => updateConfig('gpgpuNBodyRepulsion', v)} />
+                  <Slider label="Softening" value={config.gpgpuNBodySoftening} min={0.1} max={20} step={0.1} onChange={(v) => updateConfig('gpgpuNBodySoftening', v)} />
+                  <Slider label="Sample Count" value={config.gpgpuNBodySampleCount} min={4} max={64} step={4} onChange={(v) => updateConfig('gpgpuNBodySampleCount', v)} />
+                </>
+              )}
+            </div>
           </>
         )}
       </div>
