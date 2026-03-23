@@ -398,6 +398,25 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuSdfZ: 0.0,
   gpgpuSdfSize: 80.0,
   gpgpuSdfBounce: 0.5,
+  // Emission Shape
+  gpgpuEmitShape: 'sphere' as const,
+  // Color over Lifetime
+  gpgpuAgeColorEnabled: false,
+  gpgpuAgeColorYoung: '#00aaff',
+  gpgpuAgeColorOld: '#ff4400',
+  // Size over Lifetime
+  gpgpuAgeSizeEnabled: false,
+  gpgpuAgeSizeStart: 2.0,
+  gpgpuAgeSizeEnd: 0.2,
+  // Mouse Force
+  gpgpuMouseEnabled: false,
+  gpgpuMouseStrength: 2.0,
+  gpgpuMouseRadius: 150.0,
+  gpgpuMouseMode: 'attract' as const,
+  // Streak Rendering
+  gpgpuStreakEnabled: false,
+  gpgpuStreakLength: 15.0,
+  gpgpuStreakOpacity: 0.6,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

@@ -80,6 +80,11 @@ const SIM_VEL_FRAG = /* glsl */ `
   uniform float uSdfZ;
   uniform float uSdfSize;
   uniform float uSdfBounce;
+  uniform bool  uMouseEnabled;
+  uniform vec3  uMousePos;
+  uniform float uMouseStrength;
+  uniform float uMouseRadius;
+  uniform int   uMouseMode;
   varying vec2 vUv;
 
   vec3 hash3(vec3 p) {
@@ -321,6 +326,25 @@ const SIM_VEL_FRAG = /* glsl */ `
       }
     }
 
+    // Mouse Force
+    if (uMouseEnabled) {
+      vec3 toMouse = uMousePos - pos;
+      float md = length(toMouse);
+      if (md < uMouseRadius && md > 0.001) {
+        float falloff = (1.0 - md / uMouseRadius);
+        falloff *= falloff;
+        vec3 dir = normalize(toMouse);
+        if (uMouseMode == 0) { // attract
+          vel += dir * falloff * uMouseStrength * uDelta * 200.0;
+        } else if (uMouseMode == 1) { // repel
+          vel -= dir * falloff * uMouseStrength * uDelta * 200.0;
+        } else { // swirl
+          vec3 swirl = cross(dir, vec3(0.0, 1.0, 0.001));
+          vel += normalize(swirl) * falloff * uMouseStrength * uDelta * 150.0;
+        }
+      }
+    }
+
     float spd = length(vel);
     if (spd > 350.0) vel *= 350.0 / spd;
     vel *= (1.0 - 1.1 * uDelta);
@@ -436,6 +460,9 @@ const DRAW_VERT = /* glsl */ `
   uniform float uSize;
   uniform bool  uAgeEnabled;
   uniform float uAgeMax;
+  uniform bool  uAgeSizeEnabled;
+  uniform float uAgeSizeStart;
+  uniform float uAgeSizeEnd;
   attribute vec2 aTexCoord;
   varying float vSpeed;
   varying float vNormAge;
@@ -445,9 +472,10 @@ const DRAW_VERT = /* glsl */ `
     vec3 vel      = texture2D(uVelTex, aTexCoord).xyz;
     vSpeed   = clamp(length(vel) / 80.0, 0.0, 1.0);
     vNormAge = uAgeEnabled ? clamp(posData.w / max(uAgeMax, 0.001), 0.0, 1.0) : 0.5;
+    float sizeMul = uAgeSizeEnabled ? mix(uAgeSizeStart, uAgeSizeEnd, vNormAge) : 1.0;
     vec4 mvPos = modelViewMatrix * vec4(worldPos, 1.0);
     float dist = -mvPos.z;
-    gl_PointSize = max(0.5, uSize * (dist > 0.5 ? min(4.0, 500.0 / dist) : 1.0));
+    gl_PointSize = max(0.5, uSize * sizeMul * (dist > 0.5 ? min(4.0, 500.0 / dist) : 1.0));
     gl_Position  = projectionMatrix * mvPos;
   }
 `;
@@ -464,6 +492,9 @@ const DRAW_FRAG = /* glsl */ `
   uniform bool  uAgeEnabled;
   uniform float uAgeFadeIn;
   uniform float uAgeFadeOut;
+  uniform bool  uAgeColorEnabled;
+  uniform vec3  uAgeColorYoung;
+  uniform vec3  uAgeColorOld;
   varying float vSpeed;
   varying float vNormAge;
 
@@ -478,7 +509,9 @@ const DRAW_FRAG = /* glsl */ `
     if (d > 0.5) discard;
 
     vec3 col = uColor;
-    if (uVelColorEnabled) {
+    if (uAgeColorEnabled) {
+      col = mix(uAgeColorYoung, uAgeColorOld, vNormAge);
+    } else if (uVelColorEnabled) {
       float hue = mix(uVelColorHueMin, uVelColorHueMax, vSpeed) / 360.0;
       col = hsv2rgb(hue, uVelColorSaturation, 1.0);
     }
@@ -525,6 +558,50 @@ const TRAIL_FRAG = /* glsl */ `
     if (d > 0.5) discard;
     float speedMul = mix(1.0, vSpeed, uVelocityScale);
     gl_FragColor = vec4(uColor, smoothstep(0.5, 0.15, d) * uAlpha * speedMul);
+  }
+`;
+
+// ── Streak vertex (velocity-direction line segments) ──
+const STREAK_VERT = /* glsl */ `
+  precision highp float;
+  attribute vec2  aTexCoord;
+  attribute float aIsEnd;
+  uniform sampler2D uPosTex;
+  uniform sampler2D uVelTex;
+  uniform float uStreakLength;
+  uniform bool  uAgeEnabled;
+  uniform float uAgeMax;
+  varying float vEndAlpha;
+  varying float vNormAge;
+  void main() {
+    vec4 posData = texture2D(uPosTex, aTexCoord);
+    vec3 pos     = posData.xyz;
+    vec3 vel     = texture2D(uVelTex, aTexCoord).xyz;
+    float spd    = length(vel);
+    vEndAlpha    = 1.0 - aIsEnd;
+    vNormAge     = uAgeEnabled ? clamp(posData.w / max(uAgeMax, 0.001), 0.0, 1.0) : 0.5;
+    vec3 worldPos = pos - normalize(vel + vec3(0.0001)) * aIsEnd * uStreakLength * min(spd * 0.05, 1.0);
+    gl_Position   = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
+  }
+`;
+
+// ── Streak fragment ──
+const STREAK_FRAG = /* glsl */ `
+  precision highp float;
+  uniform vec3  uColor;
+  uniform float uOpacity;
+  uniform bool  uAgeEnabled;
+  uniform float uAgeFadeIn;
+  uniform float uAgeFadeOut;
+  varying float vEndAlpha;
+  varying float vNormAge;
+  void main() {
+    float ageFade = 1.0;
+    if (uAgeEnabled) {
+      ageFade  = smoothstep(0.0, uAgeFadeIn, vNormAge);
+      ageFade *= smoothstep(1.0, 1.0 - uAgeFadeOut, vNormAge);
+    }
+    gl_FragColor = vec4(uColor, uOpacity * vEndAlpha * ageFade);
   }
 `;
 
@@ -601,7 +678,22 @@ type GpgpuSystemProps = {
 };
 
 export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, config, isPlaying }) => {
-  const { gl } = useThree();
+  const { gl, camera } = useThree();
+  const mouseNDC      = useRef(new THREE.Vector2(0, 0));
+  const mouseWorldRef = useRef(new THREE.Vector3(0, 0, 0));
+  const _mVec         = useRef(new THREE.Vector3());
+  const _mDir         = useRef(new THREE.Vector3());
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const onMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseNDC.current.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+      mouseNDC.current.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+    };
+    canvas.addEventListener('mousemove', onMove);
+    return () => canvas.removeEventListener('mousemove', onMove);
+  }, [gl.domElement]);
 
   const texSize = useMemo(() => getTexSize(config.gpgpuCount), [config.gpgpuCount]);
 
@@ -679,6 +771,11 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uSdfZ:            { value: 0.0 },
       uSdfSize:         { value: 80.0 },
       uSdfBounce:       { value: 0.5 },
+      uMouseEnabled:    { value: false },
+      uMousePos:        { value: new THREE.Vector3(0, 0, 0) },
+      uMouseStrength:   { value: 2.0 },
+      uMouseRadius:     { value: 150.0 },
+      uMouseMode:       { value: 0 },
     },
     vertexShader: SIM_VERT, fragmentShader: SIM_VEL_FRAG,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -736,6 +833,12 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uAgeMax:            { value: 8.0 },
       uAgeFadeIn:         { value: 0.1 },
       uAgeFadeOut:        { value: 0.2 },
+      uAgeColorEnabled:   { value: false },
+      uAgeColorYoung:     { value: new THREE.Color('#00aaff') },
+      uAgeColorOld:       { value: new THREE.Color('#ff4400') },
+      uAgeSizeEnabled:    { value: false },
+      uAgeSizeStart:      { value: 2.0 },
+      uAgeSizeEnd:        { value: 0.2 },
     },
     vertexShader: DRAW_VERT, fragmentShader: DRAW_FRAG,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -754,6 +857,43 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     geo.setAttribute('aTexCoord', new THREE.BufferAttribute(coords, 2));
     return geo;
   }, [texSize]);
+
+  // ── Streak geometry + material ──
+  const streakGeo = useMemo(() => {
+    const count = texSize * texSize;
+    const geo   = new THREE.BufferGeometry();
+    const coords = new Float32Array(count * 4);
+    const ends   = new Float32Array(count * 2);
+    const pos    = new Float32Array(count * 6);
+    for (let i = 0; i < count; i++) {
+      const u = ((i % texSize) + 0.5) / texSize;
+      const v = (Math.floor(i / texSize) + 0.5) / texSize;
+      coords[i*4+0] = u; coords[i*4+1] = v;
+      coords[i*4+2] = u; coords[i*4+3] = v;
+      ends[i*2+0] = 0; ends[i*2+1] = 1;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aTexCoord', new THREE.BufferAttribute(coords, 2));
+    geo.setAttribute('aIsEnd',    new THREE.BufferAttribute(ends, 1));
+    return geo;
+  }, [texSize]);
+
+  const streakMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      uPosTex:       { value: null },
+      uVelTex:       { value: null },
+      uColor:        { value: new THREE.Color(config.gpgpuColor) },
+      uOpacity:      { value: 0.6 },
+      uStreakLength: { value: 15.0 },
+      uAgeEnabled:   { value: false },
+      uAgeMax:       { value: 8.0 },
+      uAgeFadeIn:    { value: 0.1 },
+      uAgeFadeOut:   { value: 0.2 },
+    },
+    vertexShader: STREAK_VERT, fragmentShader: STREAK_FRAG,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
 
   // ── Trail RTs + materials ──
   const trailRTs = useMemo(() => Array.from({ length: MAX_TRAIL }, () => makeRT(texSize)), [texSize]);
@@ -845,15 +985,37 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     const posData = new Float32Array(count * 4);
     const velData = new Float32Array(count * 4);
     const r = config.gpgpuBounceRadius;
+    const shape = config.gpgpuEmitShape;
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const phi   = Math.acos(2 * Math.random() - 1);
-      const rad   = r * (0.1 + Math.random() * 0.9);
-      const sp = Math.sin(phi), cp = Math.cos(phi);
-      posData[i*4]   = rad * sp * Math.cos(theta);
-      posData[i*4+1] = rad * sp * Math.sin(theta);
-      posData[i*4+2] = rad * cp;
-      posData[i*4+3] = 1;
+      let px = 0, py = 0, pz = 0;
+      if (shape === 'disc') {
+        const rad = r * Math.sqrt(Math.random());
+        px = rad * Math.cos(theta); py = 0; pz = rad * Math.sin(theta);
+      } else if (shape === 'ring') {
+        const rad = r * (0.85 + Math.random() * 0.15);
+        px = rad * Math.cos(theta); py = (Math.random() - 0.5) * r * 0.08; pz = rad * Math.sin(theta);
+      } else if (shape === 'box') {
+        px = (Math.random() - 0.5) * 2 * r;
+        py = (Math.random() - 0.5) * 2 * r;
+        pz = (Math.random() - 0.5) * 2 * r;
+      } else if (shape === 'shell') {
+        const phi = Math.acos(2 * Math.random() - 1);
+        px = r * Math.sin(phi) * Math.cos(theta);
+        py = r * Math.sin(phi) * Math.sin(theta);
+        pz = r * Math.cos(phi);
+      } else if (shape === 'cone') {
+        const h = Math.random() * r;
+        const cr = (h / r) * r;
+        px = cr * Math.cos(theta); py = h - r * 0.5; pz = cr * Math.sin(theta);
+      } else { // sphere (default)
+        const phi = Math.acos(2 * Math.random() - 1);
+        const rad = r * (0.1 + Math.random() * 0.9);
+        px = rad * Math.sin(phi) * Math.cos(theta);
+        py = rad * Math.sin(phi) * Math.sin(theta);
+        pz = rad * Math.cos(phi);
+      }
+      posData[i*4] = px; posData[i*4+1] = py; posData[i*4+2] = pz; posData[i*4+3] = 1;
       velData[i*4]   = (Math.random() - 0.5) * 4;
       velData[i*4+1] = (Math.random() - 0.5) * 4;
       velData[i*4+2] = (Math.random() - 0.5) * 4;
@@ -888,7 +1050,8 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       prevPosRTRef.current?.dispose(); prevPosRTRef.current = null;
       initPosTexRef.current?.dispose(); initPosTexRef.current = null;
     };
-  }, [texSize, gl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [texSize, gl, config.gpgpuEmitShape]);
 
   const timeRef = useRef(0);
 
@@ -908,6 +1071,11 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     const blast = config.gpgpuAudioReactive && config.audioEnabled
       ? (audioRef.current.bass * 0.55 + audioRef.current.pulse * 0.9) * config.gpgpuAudioBlast
       : 0;
+
+    // Update mouse world position
+    _mVec.current.set(mouseNDC.current.x, mouseNDC.current.y, 0.5).unproject(camera);
+    _mDir.current.copy(_mVec.current).sub(camera.position).normalize();
+    mouseWorldRef.current.copy(camera.position).addScaledVector(_mDir.current, camera.position.length());
 
     // Pass 0: blit current pos to prevPos (for Verlet)
     if (config.gpgpuVerletEnabled && prevPosRTRef.current) {
@@ -984,6 +1152,11 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     velSimMat.uniforms.uSdfZ.value            = config.gpgpuSdfZ;
     velSimMat.uniforms.uSdfSize.value         = config.gpgpuSdfSize;
     velSimMat.uniforms.uSdfBounce.value       = config.gpgpuSdfBounce;
+    velSimMat.uniforms.uMouseEnabled.value    = config.gpgpuMouseEnabled;
+    velSimMat.uniforms.uMousePos.value.copy(mouseWorldRef.current);
+    velSimMat.uniforms.uMouseStrength.value   = config.gpgpuMouseStrength;
+    velSimMat.uniforms.uMouseRadius.value     = config.gpgpuMouseRadius;
+    velSimMat.uniforms.uMouseMode.value       = config.gpgpuMouseMode === 'attract' ? 0 : config.gpgpuMouseMode === 'repel' ? 1 : 2;
     simMeshRef.current.material = velSimMat;
     glCtx.setRenderTarget(velOut); glCtx.render(simScene, simCamera);
 
@@ -1033,6 +1206,25 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     drawMat.uniforms.uAgeMax.value             = config.gpgpuAgeMax;
     drawMat.uniforms.uAgeFadeIn.value          = config.gpgpuAgeFadeIn;
     drawMat.uniforms.uAgeFadeOut.value         = config.gpgpuAgeFadeOut;
+    drawMat.uniforms.uAgeColorEnabled.value    = config.gpgpuAgeColorEnabled;
+    drawMat.uniforms.uAgeColorYoung.value.setStyle(config.gpgpuAgeColorYoung);
+    drawMat.uniforms.uAgeColorOld.value.setStyle(config.gpgpuAgeColorOld);
+    drawMat.uniforms.uAgeSizeEnabled.value     = config.gpgpuAgeSizeEnabled;
+    drawMat.uniforms.uAgeSizeStart.value       = config.gpgpuAgeSizeStart;
+    drawMat.uniforms.uAgeSizeEnd.value         = config.gpgpuAgeSizeEnd;
+
+    // Update streak uniforms
+    if (config.gpgpuStreakEnabled) {
+      streakMat.uniforms.uPosTex.value       = posOut.texture;
+      streakMat.uniforms.uVelTex.value       = velOut.texture;
+      streakMat.uniforms.uColor.value.setStyle(config.gpgpuColor);
+      streakMat.uniforms.uOpacity.value      = config.gpgpuStreakOpacity;
+      streakMat.uniforms.uStreakLength.value = config.gpgpuStreakLength;
+      streakMat.uniforms.uAgeEnabled.value   = config.gpgpuAgeEnabled;
+      streakMat.uniforms.uAgeMax.value       = config.gpgpuAgeMax;
+      streakMat.uniforms.uAgeFadeIn.value    = config.gpgpuAgeFadeIn;
+      streakMat.uniforms.uAgeFadeOut.value   = config.gpgpuAgeFadeOut;
+    }
 
     // Update trail uniforms
     if (config.gpgpuTrailEnabled) {
@@ -1073,6 +1265,9 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       {config.gpgpuTrailEnabled && trailMats.map((mat, i) => (
         <points key={i} geometry={drawGeo} material={mat} />
       ))}
+      {config.gpgpuStreakEnabled && (
+        <lineSegments geometry={streakGeo} material={streakMat} />
+      )}
     </>
   );
 });

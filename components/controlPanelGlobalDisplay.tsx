@@ -194,6 +194,16 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
         {config.gpgpuEnabled && (
           <>
             <Slider label="Particle Count" value={config.gpgpuCount} min={1024} max={1048576} step={1024} onChange={(v) => updateConfig('gpgpuCount', v)} />
+            <Toggle
+              label="Emit Shape"
+              value={config.gpgpuEmitShape}
+              options={[
+                { label: 'Sphere', val: 'sphere' }, { label: 'Shell', val: 'shell' },
+                { label: 'Disc', val: 'disc' },   { label: 'Ring', val: 'ring' },
+                { label: 'Box', val: 'box' },     { label: 'Cone', val: 'cone' },
+              ]}
+              onChange={(v) => updateConfig('gpgpuEmitShape', v)}
+            />
             <Slider label="Gravity" value={config.gpgpuGravity} min={0} max={2} step={0.01} onChange={(v) => updateConfig('gpgpuGravity', v)} />
             <Slider label="Turbulence" value={config.gpgpuTurbulence} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuTurbulence', v)} />
             <Slider label="Bounce" value={config.gpgpuBounce} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuBounce', v)} />
@@ -447,6 +457,62 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
                   <Slider label="Center X" value={config.gpgpuSdfX} min={-300} max={300} step={5} onChange={(v) => updateConfig('gpgpuSdfX', v)} />
                   <Slider label="Center Y" value={config.gpgpuSdfY} min={-300} max={300} step={5} onChange={(v) => updateConfig('gpgpuSdfY', v)} />
                   <Slider label="Center Z" value={config.gpgpuSdfZ} min={-300} max={300} step={5} onChange={(v) => updateConfig('gpgpuSdfZ', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Color over Lifetime */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Color over Lifetime" value={config.gpgpuAgeColorEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuAgeColorEnabled', v)} />
+              {config.gpgpuAgeColorEnabled && (
+                <div className="flex gap-3 mt-2">
+                  <div className="flex-1">
+                    <div className="mb-1 text-[9px] opacity-60 uppercase tracking-widest">Young</div>
+                    <input type="color" value={config.gpgpuAgeColorYoung} onChange={(e) => updateConfig('gpgpuAgeColorYoung', e.target.value)} className="h-8 w-full cursor-pointer rounded border border-white/20 bg-transparent p-0.5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-1 text-[9px] opacity-60 uppercase tracking-widest">Old</div>
+                    <input type="color" value={config.gpgpuAgeColorOld} onChange={(e) => updateConfig('gpgpuAgeColorOld', e.target.value)} className="h-8 w-full cursor-pointer rounded border border-white/20 bg-transparent p-0.5" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Size over Lifetime */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Size over Lifetime" value={config.gpgpuAgeSizeEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuAgeSizeEnabled', v)} />
+              {config.gpgpuAgeSizeEnabled && (
+                <>
+                  <Slider label="Size at Birth" value={config.gpgpuAgeSizeStart} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuAgeSizeStart', v)} />
+                  <Slider label="Size at Death" value={config.gpgpuAgeSizeEnd} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuAgeSizeEnd', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Mouse Force */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Mouse Force" value={config.gpgpuMouseEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuMouseEnabled', v)} />
+              {config.gpgpuMouseEnabled && (
+                <>
+                  <Toggle
+                    label="Mode"
+                    value={config.gpgpuMouseMode}
+                    options={[{ label: 'Attract', val: 'attract' }, { label: 'Repel', val: 'repel' }, { label: 'Swirl', val: 'swirl' }]}
+                    onChange={(v) => updateConfig('gpgpuMouseMode', v)}
+                  />
+                  <Slider label="Strength" value={config.gpgpuMouseStrength} min={0} max={10} step={0.1} onChange={(v) => updateConfig('gpgpuMouseStrength', v)} />
+                  <Slider label="Radius" value={config.gpgpuMouseRadius} min={10} max={500} step={10} onChange={(v) => updateConfig('gpgpuMouseRadius', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Streak Rendering */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Streak Rendering" value={config.gpgpuStreakEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuStreakEnabled', v)} />
+              {config.gpgpuStreakEnabled && (
+                <>
+                  <Slider label="Streak Length" value={config.gpgpuStreakLength} min={1} max={100} step={1} onChange={(v) => updateConfig('gpgpuStreakLength', v)} />
+                  <Slider label="Opacity" value={config.gpgpuStreakOpacity} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuStreakOpacity', v)} />
                 </>
               )}
             </div>

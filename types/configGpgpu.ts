@@ -100,4 +100,23 @@ export interface ParticleConfigGpgpu {
   gpgpuSdfZ: number;
   gpgpuSdfSize: number;
   gpgpuSdfBounce: number;
+  // Emission Shape
+  gpgpuEmitShape: 'sphere' | 'disc' | 'ring' | 'box' | 'shell' | 'cone';
+  // Color over Lifetime
+  gpgpuAgeColorEnabled: boolean;
+  gpgpuAgeColorYoung: string;
+  gpgpuAgeColorOld: string;
+  // Size over Lifetime
+  gpgpuAgeSizeEnabled: boolean;
+  gpgpuAgeSizeStart: number;
+  gpgpuAgeSizeEnd: number;
+  // Mouse Force
+  gpgpuMouseEnabled: boolean;
+  gpgpuMouseStrength: number;
+  gpgpuMouseRadius: number;
+  gpgpuMouseMode: 'attract' | 'repel' | 'swirl';
+  // Streak Rendering
+  gpgpuStreakEnabled: boolean;
+  gpgpuStreakLength: number;
+  gpgpuStreakOpacity: number;
 }
