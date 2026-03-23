@@ -26,4 +26,14 @@ export interface ParticleConfigGpgpu {
   gpgpuNBodyRepulsion: number;
   gpgpuNBodySoftening: number;
   gpgpuNBodySampleCount: number;
+  // Velocity color gradient
+  gpgpuVelColorEnabled: boolean;
+  gpgpuVelColorHueMin: number;
+  gpgpuVelColorHueMax: number;
+  gpgpuVelColorSaturation: number;
+  // Life/Age
+  gpgpuAgeEnabled: boolean;
+  gpgpuAgeMax: number;
+  gpgpuAgeFadeIn: number;
+  gpgpuAgeFadeOut: number;
 }

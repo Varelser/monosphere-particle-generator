@@ -329,6 +329,14 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuNBodyRepulsion: 5.0,
   gpgpuNBodySoftening: 2.0,
   gpgpuNBodySampleCount: 16,
+  gpgpuVelColorEnabled: false,
+  gpgpuVelColorHueMin: 200,
+  gpgpuVelColorHueMax: 360,
+  gpgpuVelColorSaturation: 0.9,
+  gpgpuAgeEnabled: false,
+  gpgpuAgeMax: 8.0,
+  gpgpuAgeFadeIn: 0.1,
+  gpgpuAgeFadeOut: 0.2,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,
@@ -346,6 +354,10 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   postBloomThreshold: 0.15,
   postChromaticAberrationEnabled: false,
   postChromaticAberrationOffset: 0.003,
+  postDofEnabled: false,
+  postDofFocusDistance: 0.02,
+  postDofFocalLength: 0.05,
+  postDofBokehScale: 2.0,
 
   // Ambient Layer
   ambientEnabled: false,

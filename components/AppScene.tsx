@@ -1,7 +1,7 @@
 import React from 'react';
 import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, OrthographicCamera, PerspectiveCamera } from '@react-three/drei';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration, DepthOfField } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -240,7 +240,7 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
         isSequencePlaying={isSequencePlaying}
         sequenceStepProgress={sequenceStepProgress}
       />
-      {(config.postBloomEnabled || config.postChromaticAberrationEnabled) && (
+      {(config.postBloomEnabled || config.postChromaticAberrationEnabled || config.postDofEnabled) && (
         <EffectComposer>
           {config.postBloomEnabled ? (
             <Bloom
@@ -257,6 +257,13 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
               offset={new THREE.Vector2(config.postChromaticAberrationOffset, config.postChromaticAberrationOffset)}
               radialModulation={false}
               modulationOffset={0}
+            />
+          ) : <></>}
+          {config.postDofEnabled ? (
+            <DepthOfField
+              focusDistance={config.postDofFocusDistance}
+              focalLength={config.postDofFocalLength}
+              bokehScale={config.postDofBokehScale}
             />
           ) : <></>}
         </EffectComposer>

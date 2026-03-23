@@ -75,4 +75,8 @@ export interface ParticleConfigCore {
   postBloomThreshold: number;
   postChromaticAberrationEnabled: boolean;
   postChromaticAberrationOffset: number;
+  postDofEnabled: boolean;
+  postDofFocusDistance: number;
+  postDofFocalLength: number;
+  postDofBokehScale: number;
 }

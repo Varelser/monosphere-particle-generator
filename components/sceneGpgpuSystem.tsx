@@ -102,7 +102,7 @@ const SIM_VEL_FRAG = /* glsl */ `
   }
 `;
 
-// ── Position sim fragment ──
+// ── Position sim fragment (+ Life/Age in .w) ──
 const SIM_POS_FRAG = /* glsl */ `
   precision highp float;
   uniform sampler2D uPosTex;
@@ -110,14 +110,35 @@ const SIM_POS_FRAG = /* glsl */ `
   uniform float uDelta;
   uniform float uSpeed;
   uniform float uBounceRadius;
+  uniform bool  uAgeEnabled;
+  uniform float uAgeMax;
   varying vec2 vUv;
+
+  float hash1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
   void main() {
-    vec3 pos = texture2D(uPosTex, vUv).xyz;
+    vec4 posData = texture2D(uPosTex, vUv);
+    vec3 pos = posData.xyz;
+    float age = posData.w;
     vec3 vel = texture2D(uVelTex, vUv).xyz;
+
     pos += vel * uDelta * uSpeed * 60.0;
     float dist = length(pos);
     if (dist > uBounceRadius * 1.05) pos = normalize(pos) * uBounceRadius * 1.05;
-    gl_FragColor = vec4(pos, 1.0);
+
+    if (uAgeEnabled) {
+      age += uDelta;
+      if (age > uAgeMax) {
+        // Respawn at random position inside sphere
+        float r   = uBounceRadius * (0.05 + hash1(vUv + vec2(age)) * 0.9);
+        float th  = hash1(vUv + vec2(1.3)) * 6.2832;
+        float phi = acos(2.0 * hash1(vUv + vec2(2.7)) - 1.0);
+        pos = vec3(r * sin(phi) * cos(th), r * sin(phi) * sin(th), r * cos(phi));
+        age = 0.0;
+      }
+    }
+
+    gl_FragColor = vec4(pos, age);
   }
 `;
 
@@ -133,16 +154,23 @@ const BLIT_FRAG = /* glsl */ `
 const DRAW_VERT = /* glsl */ `
   precision highp float;
   uniform sampler2D uPosTex;
+  uniform sampler2D uVelTex;
   uniform float uSize;
+  uniform bool  uAgeEnabled;
+  uniform float uAgeMax;
   attribute vec2 aTexCoord;
-  varying float vAlpha;
+  varying float vSpeed;
+  varying float vNormAge;
   void main() {
-    vec3 worldPos = texture2D(uPosTex, aTexCoord).xyz;
+    vec4 posData  = texture2D(uPosTex, aTexCoord);
+    vec3 worldPos = posData.xyz;
+    vec3 vel      = texture2D(uVelTex, aTexCoord).xyz;
+    vSpeed   = clamp(length(vel) / 80.0, 0.0, 1.0);
+    vNormAge = uAgeEnabled ? clamp(posData.w / max(uAgeMax, 0.001), 0.0, 1.0) : 0.5;
     vec4 mvPos = modelViewMatrix * vec4(worldPos, 1.0);
     float dist = -mvPos.z;
     gl_PointSize = max(0.5, uSize * (dist > 0.5 ? min(4.0, 500.0 / dist) : 1.0));
     gl_Position  = projectionMatrix * mvPos;
-    vAlpha = 1.0;
   }
 `;
 
@@ -151,12 +179,39 @@ const DRAW_FRAG = /* glsl */ `
   precision highp float;
   uniform vec3  uColor;
   uniform float uOpacity;
-  varying float vAlpha;
+  uniform bool  uVelColorEnabled;
+  uniform float uVelColorHueMin;
+  uniform float uVelColorHueMax;
+  uniform float uVelColorSaturation;
+  uniform bool  uAgeEnabled;
+  uniform float uAgeFadeIn;
+  uniform float uAgeFadeOut;
+  varying float vSpeed;
+  varying float vNormAge;
+
+  vec3 hsv2rgb(float h, float s, float v) {
+    vec3 p = abs(fract(vec3(h) + vec3(1.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
+    return v * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), s);
+  }
+
   void main() {
     vec2 pc = gl_PointCoord - 0.5;
     float d = length(pc);
     if (d > 0.5) discard;
-    gl_FragColor = vec4(uColor, smoothstep(0.5, 0.12, d) * vAlpha * uOpacity);
+
+    vec3 col = uColor;
+    if (uVelColorEnabled) {
+      float hue = mix(uVelColorHueMin, uVelColorHueMax, vSpeed) / 360.0;
+      col = hsv2rgb(hue, uVelColorSaturation, 1.0);
+    }
+
+    float ageFade = 1.0;
+    if (uAgeEnabled) {
+      ageFade  = smoothstep(0.0, uAgeFadeIn, vNormAge);
+      ageFade *= smoothstep(1.0, 1.0 - uAgeFadeOut, vNormAge);
+    }
+
+    gl_FragColor = vec4(col, smoothstep(0.5, 0.12, d) * uOpacity * ageFade);
   }
 `;
 
@@ -296,6 +351,8 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uDelta:        { value: 0.016 },
       uSpeed:        { value: config.gpgpuSpeed },
       uBounceRadius: { value: config.gpgpuBounceRadius },
+      uAgeEnabled:   { value: false },
+      uAgeMax:       { value: 8.0 },
     },
     vertexShader: SIM_VERT, fragmentShader: SIM_POS_FRAG,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -317,10 +374,19 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
   // ── Draw material + geometry ──
   const drawMat = useMemo(() => new THREE.ShaderMaterial({
     uniforms: {
-      uPosTex:  { value: null },
-      uColor:   { value: new THREE.Color(config.gpgpuColor) },
-      uSize:    { value: config.gpgpuSize },
-      uOpacity: { value: config.gpgpuOpacity },
+      uPosTex:            { value: null },
+      uVelTex:            { value: null },
+      uColor:             { value: new THREE.Color(config.gpgpuColor) },
+      uSize:              { value: config.gpgpuSize },
+      uOpacity:           { value: config.gpgpuOpacity },
+      uVelColorEnabled:   { value: false },
+      uVelColorHueMin:    { value: 200 },
+      uVelColorHueMax:    { value: 360 },
+      uVelColorSaturation:{ value: 0.9 },
+      uAgeEnabled:        { value: false },
+      uAgeMax:            { value: 8.0 },
+      uAgeFadeIn:         { value: 0.1 },
+      uAgeFadeOut:        { value: 0.2 },
     },
     vertexShader: DRAW_VERT, fragmentShader: DRAW_FRAG,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -503,6 +569,8 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     posSimMat.uniforms.uDelta.value        = dt;
     posSimMat.uniforms.uSpeed.value        = config.gpgpuSpeed;
     posSimMat.uniforms.uBounceRadius.value = config.gpgpuBounceRadius;
+    posSimMat.uniforms.uAgeEnabled.value   = config.gpgpuAgeEnabled;
+    posSimMat.uniforms.uAgeMax.value       = config.gpgpuAgeMax;
     simMeshRef.current.material = posSimMat;
     glCtx.setRenderTarget(posOut); glCtx.render(simScene, simCamera);
 
@@ -519,10 +587,19 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     pingIsA.current = !isA;
 
     // Update draw uniforms
-    drawMat.uniforms.uPosTex.value  = posOut.texture;
+    drawMat.uniforms.uPosTex.value             = posOut.texture;
+    drawMat.uniforms.uVelTex.value             = velOut.texture;
     drawMat.uniforms.uColor.value.setStyle(config.gpgpuColor);
-    drawMat.uniforms.uSize.value    = config.gpgpuSize;
-    drawMat.uniforms.uOpacity.value = config.gpgpuOpacity;
+    drawMat.uniforms.uSize.value               = config.gpgpuSize;
+    drawMat.uniforms.uOpacity.value            = config.gpgpuOpacity;
+    drawMat.uniforms.uVelColorEnabled.value    = config.gpgpuVelColorEnabled;
+    drawMat.uniforms.uVelColorHueMin.value     = config.gpgpuVelColorHueMin;
+    drawMat.uniforms.uVelColorHueMax.value     = config.gpgpuVelColorHueMax;
+    drawMat.uniforms.uVelColorSaturation.value = config.gpgpuVelColorSaturation;
+    drawMat.uniforms.uAgeEnabled.value         = config.gpgpuAgeEnabled;
+    drawMat.uniforms.uAgeMax.value             = config.gpgpuAgeMax;
+    drawMat.uniforms.uAgeFadeIn.value          = config.gpgpuAgeFadeIn;
+    drawMat.uniforms.uAgeFadeOut.value         = config.gpgpuAgeFadeOut;
 
     // Update trail uniforms
     if (config.gpgpuTrailEnabled) {
