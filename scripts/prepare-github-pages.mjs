@@ -3,12 +3,13 @@ import path from 'node:path';
 
 const workspaceRoot = process.cwd();
 const distDir = path.join(workspaceRoot, 'dist');
-const pagesDir = path.join(distDir, 'hp');
 const sourceHtmlPath = path.join(distDir, 'index.html');
-const targetHtmlPath = path.join(pagesDir, 'kalokagathia.html');
 const sourceAssetsPath = path.join(distDir, 'assets');
-const targetAssetsPath = path.join(pagesDir, 'assets');
-const noJekyllPath = path.join(distDir, '.nojekyll');
+
+// Output: dist/deploy/ — this is what gets copied to varelser.github.io root
+const deployDir = path.join(distDir, 'deploy');
+const targetHtmlPath = path.join(deployDir, 'kalokagathia.html');
+const targetAssetsPath = path.join(deployDir, 'assets');
 
 async function main() {
   let sourceHtml = await fs.readFile(sourceHtmlPath, 'utf8');
@@ -17,7 +18,7 @@ async function main() {
   const swCleanupScript = `<script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(regs) {
-          regs.forEach(function(r) { if (r.scope.includes('/hp') || r.scope === location.origin + '/') r.unregister(); });
+          regs.forEach(function(r) { r.unregister(); });
         });
         caches.keys().then(function(names) {
           names.filter(function(n) { return n.startsWith('thought-workbench'); }).forEach(function(n) { caches.delete(n); });
@@ -29,27 +30,14 @@ async function main() {
     swCleanupScript + '\n    <script type="module"'
   );
 
-  await fs.mkdir(pagesDir, { recursive: true });
+  await fs.mkdir(deployDir, { recursive: true });
   await fs.writeFile(targetHtmlPath, sourceHtml, 'utf8');
-
-  // Write noop service worker for /hp/ scope
-  const noopSw = `self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(names.filter(n => n.startsWith('thought-workbench')).map(n => caches.delete(n)))
-    ).then(() => self.clients.claim())
-  );
-});`;
-  await fs.writeFile(path.join(pagesDir, 'sw.js'), noopSw, 'utf8');
   await fs.cp(sourceAssetsPath, targetAssetsPath, { recursive: true });
-  await fs.writeFile(noJekyllPath, '', 'utf8');
 
   console.log(JSON.stringify({
-    source: path.relative(workspaceRoot, sourceHtmlPath),
-    target: path.relative(workspaceRoot, targetHtmlPath),
+    html: path.relative(workspaceRoot, targetHtmlPath),
     assets: path.relative(workspaceRoot, targetAssetsPath),
-    noJekyll: path.relative(workspaceRoot, noJekyllPath),
+    deployDir: path.relative(workspaceRoot, deployDir),
     passed: true,
   }, null, 2));
 }
