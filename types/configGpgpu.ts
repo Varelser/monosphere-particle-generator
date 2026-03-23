@@ -119,4 +119,14 @@ export interface ParticleConfigGpgpu {
   gpgpuStreakEnabled: boolean;
   gpgpuStreakLength: number;
   gpgpuStreakOpacity: number;
+  // Sort-based Transparency (GPU Bitonic Sort)
+  gpgpuSortEnabled: boolean;
+  // Fluid Advection (Navier-Stokes simplified)
+  gpgpuFluidEnabled: boolean;
+  gpgpuFluidDiffuse: number;
+  gpgpuFluidDecay: number;
+  gpgpuFluidStrength: number;
+  gpgpuFluidInfluence: number;
+  gpgpuFluidScale: number;
+  gpgpuFluidExtForce: boolean;
 }

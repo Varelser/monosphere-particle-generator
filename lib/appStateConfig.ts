@@ -417,6 +417,16 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuStreakEnabled: false,
   gpgpuStreakLength: 15.0,
   gpgpuStreakOpacity: 0.6,
+  // Sort-based Transparency
+  gpgpuSortEnabled: false,
+  // Fluid Advection
+  gpgpuFluidEnabled: false,
+  gpgpuFluidDiffuse: 0.02,
+  gpgpuFluidDecay: 0.01,
+  gpgpuFluidStrength: 1.0,
+  gpgpuFluidInfluence: 0.8,
+  gpgpuFluidScale: 1.5,
+  gpgpuFluidExtForce: false,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

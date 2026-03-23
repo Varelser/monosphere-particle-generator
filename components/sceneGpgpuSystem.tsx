@@ -85,6 +85,10 @@ const SIM_VEL_FRAG = /* glsl */ `
   uniform float uMouseStrength;
   uniform float uMouseRadius;
   uniform int   uMouseMode;
+  uniform bool  uFluidEnabled;
+  uniform sampler2D uFluidTex;
+  uniform float uFluidInfluence;
+  uniform float uFluidScale;
   varying vec2 vUv;
 
   vec3 hash3(vec3 p) {
@@ -345,6 +349,15 @@ const SIM_VEL_FRAG = /* glsl */ `
       }
     }
 
+    // Fluid Advection
+    if (uFluidEnabled) {
+      vec2 fieldUv = pos.xz / (uBounceRadius * uFluidScale) * 0.5 + 0.5;
+      fieldUv = clamp(fieldUv, 0.001, 0.999);
+      vec2 fieldVel = texture2D(uFluidTex, fieldUv).xy;
+      vel.x += fieldVel.x * uFluidInfluence * uDelta * 300.0;
+      vel.z += fieldVel.y * uFluidInfluence * uDelta * 300.0;
+    }
+
     float spd = length(vel);
     if (spd > 350.0) vel *= 350.0 / spd;
     vel *= (1.0 - 1.1 * uDelta);
@@ -452,11 +465,105 @@ const BLIT_FRAG = /* glsl */ `
   void main() { gl_FragColor = texture2D(uTex, vUv); }
 `;
 
+// ── Sort: depth computation (stores uvX, uvY, viewZ per particle) ──
+const SORT_DEPTH_FRAG = /* glsl */ `
+  precision highp float;
+  uniform sampler2D uPosTex;
+  uniform mat4 uViewMatrix;
+  varying vec2 vUv;
+  void main() {
+    vec3 pos = texture2D(uPosTex, vUv).xyz;
+    float viewZ = -(uViewMatrix * vec4(pos, 1.0)).z;
+    gl_FragColor = vec4(vUv.x, vUv.y, viewZ, 1.0);
+  }
+`;
+
+// ── Sort: bitonic sort pass (one compare-swap step) ──
+const SORT_BITONIC_FRAG = /* glsl */ `
+  precision highp float;
+  uniform sampler2D uSortIn;
+  uniform float uTexSizeF;
+  uniform float uStep;
+  uniform float uStage;
+  varying vec2 vUv;
+  void main() {
+    float fw   = uTexSizeF;
+    float ix   = floor(vUv.x * fw);
+    float iy   = floor(vUv.y * fw);
+    float i    = iy * fw + ix;
+    float stepSize   = pow(2.0, uStep);
+    float blockSzDir = pow(2.0, uStage + 1.0);
+    // Arithmetic XOR: partner index = i XOR stepSize
+    float bitInStep = mod(floor(i / stepSize), 2.0);
+    float l = i + (bitInStep < 0.5 ? stepSize : -stepSize);
+    if (l < 0.0 || l >= fw * fw) { gl_FragColor = texture2D(uSortIn, vUv); return; }
+    float lx = mod(l, fw);
+    float ly = floor(l / fw);
+    vec2 partnerUv = (vec2(lx, ly) + 0.5) / fw;
+    vec4 myData      = texture2D(uSortIn, vUv);
+    vec4 partnerData = texture2D(uSortIn, partnerUv);
+    float myDepth      = myData.z;
+    float partnerDepth = partnerData.z;
+    // origAsc=true for even blocks. Invert comparison for descending final order (far=0).
+    bool origAsc = mod(floor(i / blockSzDir), 2.0) < 0.5;
+    bool shouldSwap;
+    if (i < l) {
+      shouldSwap = origAsc ? (myDepth < partnerDepth) : (myDepth > partnerDepth);
+    } else {
+      shouldSwap = origAsc ? (myDepth > partnerDepth) : (myDepth < partnerDepth);
+    }
+    gl_FragColor = shouldSwap ? partnerData : myData;
+  }
+`;
+
+// ── Fluid advection (Semi-Lagrangian Navier-Stokes simplified) ──
+const FLUID_ADVECT_FRAG = /* glsl */ `
+  precision highp float;
+  uniform sampler2D uFluidIn;
+  uniform float uDelta;
+  uniform float uFluidDiffuse;
+  uniform float uFluidDecay;
+  uniform float uFluidStrength;
+  uniform float uTime;
+  uniform bool  uFluidExtForce;
+  varying vec2 vUv;
+  void main() {
+    vec2 uv  = vUv;
+    vec2 vel = texture2D(uFluidIn, uv).xy;
+    float ts = 1.0 / 64.0;
+    // Semi-Lagrangian backward trace
+    vec2 backPos = uv - vel * uDelta * ts * 80.0;
+    vec2 advVel  = texture2D(uFluidIn, backPos).xy;
+    // 5-point Laplacian diffusion
+    vec2 vL = texture2D(uFluidIn, uv + vec2(-ts, 0.0)).xy;
+    vec2 vR = texture2D(uFluidIn, uv + vec2( ts, 0.0)).xy;
+    vec2 vB = texture2D(uFluidIn, uv + vec2(0.0,-ts)).xy;
+    vec2 vT = texture2D(uFluidIn, uv + vec2(0.0, ts)).xy;
+    vec2 lap    = vL + vR + vB + vT - 4.0 * advVel;
+    vec2 newVel = advVel + uFluidDiffuse * lap;
+    // Exponential decay
+    newVel *= 1.0 - uFluidDecay * uDelta * 60.0;
+    // External forcing: rotating vortex + periodic perturbation
+    if (uFluidExtForce) {
+      vec2 c = uv - 0.5;
+      float r = length(c) + 0.001;
+      vec2 rot = vec2(-c.y, c.x) / (r * r + 0.1);
+      newVel += rot * uFluidStrength * uDelta * 2.0;
+      float t = uTime * 0.3;
+      vec2 perturb = vec2(sin(uv.y * 6.2832 + t), cos(uv.x * 6.2832 - t)) * uFluidStrength * 0.3 * uDelta;
+      newVel += perturb;
+    }
+    gl_FragColor = vec4(newVel, 0.0, 1.0);
+  }
+`;
+
 // ── Draw vertex (main points) ──
 const DRAW_VERT = /* glsl */ `
   precision highp float;
   uniform sampler2D uPosTex;
   uniform sampler2D uVelTex;
+  uniform sampler2D uSortTex;
+  uniform bool      uSortEnabled;
   uniform float uSize;
   uniform bool  uAgeEnabled;
   uniform float uAgeMax;
@@ -467,9 +574,10 @@ const DRAW_VERT = /* glsl */ `
   varying float vSpeed;
   varying float vNormAge;
   void main() {
-    vec4 posData  = texture2D(uPosTex, aTexCoord);
+    vec2 particleUv = uSortEnabled ? texture2D(uSortTex, aTexCoord).xy : aTexCoord;
+    vec4 posData  = texture2D(uPosTex, particleUv);
     vec3 worldPos = posData.xyz;
-    vec3 vel      = texture2D(uVelTex, aTexCoord).xyz;
+    vec3 vel      = texture2D(uVelTex, particleUv).xyz;
     vSpeed   = clamp(length(vel) / 80.0, 0.0, 1.0);
     vNormAge = uAgeEnabled ? clamp(posData.w / max(uAgeMax, 0.001), 0.0, 1.0) : 0.5;
     float sizeMul = uAgeSizeEnabled ? mix(uAgeSizeStart, uAgeSizeEnd, vNormAge) : 1.0;
@@ -669,6 +777,20 @@ function makeRT(size: number): THREE.WebGLRenderTarget {
     stencilBuffer: false,
   });
 }
+function makeFluidRT(size: number): THREE.WebGLRenderTarget {
+  const rt = new THREE.WebGLRenderTarget(size, size, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    format: THREE.RGBAFormat,
+    type: THREE.FloatType,
+    depthBuffer: false,
+    stencilBuffer: false,
+  });
+  rt.texture.wrapS = THREE.RepeatWrapping;
+  rt.texture.wrapT = THREE.RepeatWrapping;
+  return rt;
+}
+const FLUID_SIZE = 64;
 
 // ── Component ──
 type GpgpuSystemProps = {
@@ -776,6 +898,10 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uMouseStrength:   { value: 2.0 },
       uMouseRadius:     { value: 150.0 },
       uMouseMode:       { value: 0 },
+      uFluidEnabled:    { value: false },
+      uFluidTex:        { value: null },
+      uFluidInfluence:  { value: 0.8 },
+      uFluidScale:      { value: 1.5 },
     },
     vertexShader: SIM_VERT, fragmentShader: SIM_VEL_FRAG,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -809,6 +935,37 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     vertexShader: SIM_VERT, fragmentShader: BLIT_FRAG,
   }), []);
 
+  const sortDepthMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      uPosTex:     { value: null },
+      uViewMatrix: { value: new THREE.Matrix4() },
+    },
+    vertexShader: SIM_VERT, fragmentShader: SORT_DEPTH_FRAG,
+  }), []);
+
+  const bitonicMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      uSortIn:   { value: null },
+      uTexSizeF: { value: 64.0 },
+      uStep:     { value: 0.0 },
+      uStage:    { value: 0.0 },
+    },
+    vertexShader: SIM_VERT, fragmentShader: SORT_BITONIC_FRAG,
+  }), []);
+
+  const fluidAdvectMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      uFluidIn:       { value: null },
+      uDelta:         { value: 0.016 },
+      uFluidDiffuse:  { value: 0.02 },
+      uFluidDecay:    { value: 0.01 },
+      uFluidStrength: { value: 1.0 },
+      uTime:          { value: 0.0 },
+      uFluidExtForce: { value: false },
+    },
+    vertexShader: SIM_VERT, fragmentShader: FLUID_ADVECT_FRAG,
+  }), []);
+
   const simMeshRef = useRef<THREE.Mesh | null>(null);
   useEffect(() => {
     const mesh = new THREE.Mesh(simGeo, velSimMat);
@@ -839,6 +996,8 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uAgeSizeEnabled:    { value: false },
       uAgeSizeStart:      { value: 2.0 },
       uAgeSizeEnd:        { value: 0.2 },
+      uSortTex:           { value: null },
+      uSortEnabled:       { value: false },
     },
     vertexShader: DRAW_VERT, fragmentShader: DRAW_FRAG,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -963,8 +1122,13 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     velA: THREE.WebGLRenderTarget; velB: THREE.WebGLRenderTarget;
   } | null>(null);
   const pingIsA = useRef(true);
-  const prevPosRTRef = useRef<THREE.WebGLRenderTarget | null>(null);
+  const prevPosRTRef  = useRef<THREE.WebGLRenderTarget | null>(null);
   const initPosTexRef = useRef<THREE.DataTexture | null>(null);
+  const fluidRTARef   = useRef<THREE.WebGLRenderTarget | null>(null);
+  const fluidRTBRef   = useRef<THREE.WebGLRenderTarget | null>(null);
+  const fluidPingIsA  = useRef(true);
+  const sortRTARef    = useRef<THREE.WebGLRenderTarget | null>(null);
+  const sortRTBRef    = useRef<THREE.WebGLRenderTarget | null>(null);
 
   useEffect(() => {
     if (rtRef.current) {
@@ -1043,12 +1207,50 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     gl.setRenderTarget(null);
     posTex.dispose(); velTex.dispose(); copyMat.dispose(); copyGeo.dispose();
 
+    // Sort RTs (same size as particle textures, NearestFilter)
+    sortRTARef.current?.dispose();
+    sortRTBRef.current?.dispose();
+    sortRTARef.current = makeRT(texSize);
+    sortRTBRef.current = makeRT(texSize);
+
+    // Fluid RTs (fixed 64x64, LinearFilter with RepeatWrapping)
+    fluidRTARef.current?.dispose();
+    fluidRTBRef.current?.dispose();
+    fluidRTARef.current = makeFluidRT(FLUID_SIZE);
+    fluidRTBRef.current = makeFluidRT(FLUID_SIZE);
+    fluidPingIsA.current = true;
+    // Initialize fluid field with a swirling vortex pattern
+    const fluidInitData = new Float32Array(FLUID_SIZE * FLUID_SIZE * 4);
+    for (let fi = 0; fi < FLUID_SIZE * FLUID_SIZE; fi++) {
+      const fu = (fi % FLUID_SIZE) / FLUID_SIZE - 0.5;
+      const fv = Math.floor(fi / FLUID_SIZE) / FLUID_SIZE - 0.5;
+      const fr = Math.sqrt(fu * fu + fv * fv) + 0.001;
+      fluidInitData[fi * 4 + 0] = -fv / (fr * fr + 0.1) * 0.08;
+      fluidInitData[fi * 4 + 1] =  fu / (fr * fr + 0.1) * 0.08;
+      fluidInitData[fi * 4 + 2] = 0;
+      fluidInitData[fi * 4 + 3] = 1;
+    }
+    const fluidInitTex = new THREE.DataTexture(fluidInitData, FLUID_SIZE, FLUID_SIZE, THREE.RGBAFormat, THREE.FloatType);
+    fluidInitTex.needsUpdate = true;
+    const fluidCopyMat = new THREE.MeshBasicMaterial({ map: fluidInitTex });
+    const fluidCopyMesh = new THREE.Mesh(copyGeo, fluidCopyMat);
+    copyScene.add(fluidCopyMesh);
+    gl.setRenderTarget(fluidRTARef.current); gl.render(copyScene, copyCam);
+    gl.setRenderTarget(fluidRTBRef.current); gl.render(copyScene, copyCam);
+    gl.setRenderTarget(null);
+    copyScene.remove(fluidCopyMesh);
+    fluidCopyMat.dispose(); fluidInitTex.dispose();
+
     return () => {
       rtRef.current?.posA.dispose(); rtRef.current?.posB.dispose();
       rtRef.current?.velA.dispose(); rtRef.current?.velB.dispose();
       rtRef.current = null;
       prevPosRTRef.current?.dispose(); prevPosRTRef.current = null;
       initPosTexRef.current?.dispose(); initPosTexRef.current = null;
+      sortRTARef.current?.dispose(); sortRTARef.current = null;
+      sortRTBRef.current?.dispose(); sortRTBRef.current = null;
+      fluidRTARef.current?.dispose(); fluidRTARef.current = null;
+      fluidRTBRef.current?.dispose(); fluidRTBRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texSize, gl, config.gpgpuEmitShape]);
@@ -1083,6 +1285,30 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       simMeshRef.current.material = blitMat;
       glCtx.setRenderTarget(prevPosRTRef.current);
       glCtx.render(simScene, simCamera);
+    }
+
+    // Pass 1a: fluid field advection (before velocity pass)
+    if (config.gpgpuFluidEnabled && fluidRTARef.current && fluidRTBRef.current) {
+      const fluidIn  = fluidPingIsA.current ? fluidRTARef.current : fluidRTBRef.current;
+      const fluidOut = fluidPingIsA.current ? fluidRTBRef.current : fluidRTARef.current;
+      fluidAdvectMat.uniforms.uFluidIn.value       = fluidIn.texture;
+      fluidAdvectMat.uniforms.uDelta.value         = dt;
+      fluidAdvectMat.uniforms.uFluidDiffuse.value  = config.gpgpuFluidDiffuse;
+      fluidAdvectMat.uniforms.uFluidDecay.value    = config.gpgpuFluidDecay;
+      fluidAdvectMat.uniforms.uFluidStrength.value = config.gpgpuFluidStrength;
+      fluidAdvectMat.uniforms.uTime.value          = timeRef.current;
+      fluidAdvectMat.uniforms.uFluidExtForce.value = config.gpgpuFluidExtForce;
+      simMeshRef.current.material = fluidAdvectMat;
+      glCtx.setRenderTarget(fluidOut);
+      glCtx.render(simScene, simCamera);
+      fluidPingIsA.current = !fluidPingIsA.current;
+      const currentFluid = fluidPingIsA.current ? fluidRTARef.current : fluidRTBRef.current;
+      velSimMat.uniforms.uFluidEnabled.value   = true;
+      velSimMat.uniforms.uFluidTex.value       = currentFluid.texture;
+      velSimMat.uniforms.uFluidInfluence.value = config.gpgpuFluidInfluence;
+      velSimMat.uniforms.uFluidScale.value     = config.gpgpuFluidScale;
+    } else {
+      velSimMat.uniforms.uFluidEnabled.value = false;
     }
 
     // Pass 1: velocity
@@ -1180,6 +1406,36 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     simMeshRef.current.material = posSimMat;
     glCtx.setRenderTarget(posOut); glCtx.render(simScene, simCamera);
 
+    // Pass 2.5: depth compute + GPU bitonic sort
+    let finalSortTex: THREE.Texture | null = null;
+    if (config.gpgpuSortEnabled && sortRTARef.current && sortRTBRef.current) {
+      // Compute depth per particle into sortRTA
+      sortDepthMat.uniforms.uPosTex.value = posOut.texture;
+      sortDepthMat.uniforms.uViewMatrix.value.copy(camera.matrixWorldInverse);
+      simMeshRef.current.material = sortDepthMat;
+      glCtx.setRenderTarget(sortRTARef.current);
+      glCtx.render(simScene, simCamera);
+
+      // Bitonic sort passes
+      const logN = Math.log2(texSize * texSize);
+      let spingA = true;
+      bitonicMat.uniforms.uTexSizeF.value = texSize;
+      for (let stage = 0; stage < logN; stage++) {
+        for (let step = stage; step >= 0; step--) {
+          const sIn  = spingA ? sortRTARef.current : sortRTBRef.current;
+          const sOut = spingA ? sortRTBRef.current : sortRTARef.current;
+          bitonicMat.uniforms.uSortIn.value = sIn.texture;
+          bitonicMat.uniforms.uStep.value   = step;
+          bitonicMat.uniforms.uStage.value  = stage;
+          simMeshRef.current.material = bitonicMat;
+          glCtx.setRenderTarget(sOut);
+          glCtx.render(simScene, simCamera);
+          spingA = !spingA;
+        }
+      }
+      finalSortTex = (spingA ? sortRTBRef.current : sortRTARef.current).texture;
+    }
+
     // Pass 3: trail blit
     if (config.gpgpuTrailEnabled) {
       blitMat.uniforms.uTex.value = posOut.texture;
@@ -1212,6 +1468,9 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     drawMat.uniforms.uAgeSizeEnabled.value     = config.gpgpuAgeSizeEnabled;
     drawMat.uniforms.uAgeSizeStart.value       = config.gpgpuAgeSizeStart;
     drawMat.uniforms.uAgeSizeEnd.value         = config.gpgpuAgeSizeEnd;
+    drawMat.uniforms.uSortEnabled.value        = config.gpgpuSortEnabled && finalSortTex !== null;
+    drawMat.uniforms.uSortTex.value            = finalSortTex;
+    drawMat.blending = config.gpgpuSortEnabled ? THREE.NormalBlending : THREE.AdditiveBlending;
 
     // Update streak uniforms
     if (config.gpgpuStreakEnabled) {
