@@ -337,6 +337,18 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuAgeMax: 8.0,
   gpgpuAgeFadeIn: 0.1,
   gpgpuAgeFadeOut: 0.2,
+  gpgpuCurlEnabled: false,
+  gpgpuCurlStrength: 1.0,
+  gpgpuCurlScale: 0.008,
+  gpgpuBoidsEnabled: false,
+  gpgpuBoidsSeparation: 1.0,
+  gpgpuBoidsAlignment: 0.5,
+  gpgpuBoidsCohesion: 0.3,
+  gpgpuBoidsRadius: 30.0,
+  gpgpuAttractorEnabled: false,
+  gpgpuAttractorType: 'lorenz' as const,
+  gpgpuAttractorStrength: 1.0,
+  gpgpuAttractorScale: 8.0,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

@@ -29,6 +29,18 @@ const SIM_VEL_FRAG = /* glsl */ `
   uniform float uNBodyRepulsion;
   uniform int   uNBodySamples;
   uniform float uTexSizeF;
+  uniform bool  uCurlEnabled;
+  uniform float uCurlStrength;
+  uniform float uCurlScale;
+  uniform bool  uBoidsEnabled;
+  uniform float uBoidsSeparation;
+  uniform float uBoidsAlignment;
+  uniform float uBoidsCohesion;
+  uniform float uBoidsRadius;
+  uniform bool  uAttractorEnabled;
+  uniform int   uAttractorType;
+  uniform float uAttractorStrength;
+  uniform float uAttractorScale;
   varying vec2 vUv;
 
   vec3 hash3(vec3 p) {
@@ -41,6 +53,20 @@ const SIM_VEL_FRAG = /* glsl */ `
                    mix(dot(hash3(i+vec3(0,1,0)),f-vec3(0,1,0)),dot(hash3(i+vec3(1,1,0)),f-vec3(1,1,0)),u.x),u.y),
                mix(mix(dot(hash3(i+vec3(0,0,1)),f-vec3(0,0,1)),dot(hash3(i+vec3(1,0,1)),f-vec3(1,0,1)),u.x),
                    mix(dot(hash3(i+vec3(0,1,1)),f-vec3(0,1,1)),dot(hash3(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y));
+  }
+
+  // Divergence-free curl noise (12 noise evals)
+  vec3 curlNoise(vec3 p) {
+    const float e = 0.1;
+    vec3 p1 = p + vec3(31.416, 0.0, 0.0);
+    vec3 p2 = p + vec3(0.0, 43.982, 0.0);
+    float dFz_dy = vnoise(p2 + vec3(0,e,0)) - vnoise(p2 - vec3(0,e,0));
+    float dFy_dz = vnoise(p1 + vec3(0,0,e)) - vnoise(p1 - vec3(0,0,e));
+    float dFx_dz = vnoise(p  + vec3(0,0,e)) - vnoise(p  - vec3(0,0,e));
+    float dFz_dx = vnoise(p2 + vec3(e,0,0)) - vnoise(p2 - vec3(e,0,0));
+    float dFy_dx = vnoise(p1 + vec3(e,0,0)) - vnoise(p1 - vec3(e,0,0));
+    float dFx_dy = vnoise(p  + vec3(0,e,0)) - vnoise(p  - vec3(0,e,0));
+    return vec3(dFz_dy - dFy_dz, dFx_dz - dFz_dx, dFy_dx - dFx_dy) / (2.0 * e);
   }
 
   void main() {
@@ -85,6 +111,52 @@ const SIM_VEL_FRAG = /* glsl */ `
         }
       }
       vel += acc * uNBodyStrength * uDelta * 500.0;
+    }
+
+    // Curl Noise
+    if (uCurlEnabled) {
+      vec3 curl = curlNoise(pos * uCurlScale + vec3(uTime * 0.15));
+      vel += curl * uCurlStrength * 20.0 * uDelta;
+    }
+
+    // Boids
+    if (uBoidsEnabled) {
+      vec3 sepForce = vec3(0.0);
+      vec3 aliForce = vec3(0.0);
+      vec3 cohPos   = vec3(0.0);
+      int  cohCount = 0;
+      float stride = uTexSizeF / float(uNBodySamples);
+      for (int i = 0; i < 64; i++) {
+        if (i >= uNBodySamples) break;
+        float si = float(i) * stride;
+        vec2 sUv = (vec2(mod(si, uTexSizeF), floor(si / uTexSizeF)) + 0.5) / uTexSizeF;
+        if (length(sUv - vUv) < 1.5 / uTexSizeF) continue;
+        vec3 oPos = texture2D(uPosTex, sUv).xyz;
+        vec3 oVel = texture2D(uVelTex, sUv).xyz;
+        float d = distance(pos, oPos);
+        if (d < uBoidsRadius * 0.3 && d > 0.001) sepForce -= normalize(oPos - pos) / max(d, 0.5);
+        if (d < uBoidsRadius) { aliForce += oVel; cohPos += oPos; cohCount++; }
+      }
+      if (cohCount > 0) {
+        float inv = 1.0 / float(cohCount);
+        vel += normalize(sepForce + vec3(0.0001)) * uBoidsSeparation * uDelta * 150.0;
+        vel += normalize(aliForce * inv - vel + vec3(0.0001)) * uBoidsAlignment * uDelta * 60.0;
+        vel += normalize(cohPos * inv - pos + vec3(0.0001)) * uBoidsCohesion * uDelta * 60.0;
+      }
+    }
+
+    // Strange Attractor
+    if (uAttractorEnabled) {
+      vec3 ap = pos / max(0.1, uAttractorScale);
+      vec3 dv;
+      if (uAttractorType == 0) { // Lorenz
+        dv = vec3(10.0*(ap.y-ap.x), ap.x*(28.0-ap.z)-ap.y, ap.x*ap.y-2.667*ap.z);
+      } else if (uAttractorType == 1) { // Rossler
+        dv = vec3(-(ap.y+ap.z), ap.x+0.2*ap.y, 0.2+ap.z*(ap.x-5.7));
+      } else { // Thomas
+        dv = vec3(sin(ap.y)-0.208*ap.x, sin(ap.z)-0.208*ap.y, sin(ap.x)-0.208*ap.z);
+      }
+      vel += normalize(dv + vec3(0.0001)) * uAttractorStrength * uDelta * 40.0;
     }
 
     float spd = length(vel);
@@ -350,6 +422,18 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       uNBodyRepulsion: { value: 5.0 },
       uNBodySamples:   { value: 16 },
       uTexSizeF:       { value: texSize },
+      uCurlEnabled:       { value: false },
+      uCurlStrength:      { value: 1.0 },
+      uCurlScale:         { value: 0.008 },
+      uBoidsEnabled:      { value: false },
+      uBoidsSeparation:   { value: 1.0 },
+      uBoidsAlignment:    { value: 0.5 },
+      uBoidsCohesion:     { value: 0.3 },
+      uBoidsRadius:       { value: 30.0 },
+      uAttractorEnabled:  { value: false },
+      uAttractorType:     { value: 0 },
+      uAttractorStrength: { value: 1.0 },
+      uAttractorScale:    { value: 8.0 },
     },
     vertexShader: SIM_VERT, fragmentShader: SIM_VEL_FRAG,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,6 +655,18 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     velSimMat.uniforms.uNBodyRepulsion.value = config.gpgpuNBodyRepulsion;
     velSimMat.uniforms.uNBodySamples.value   = Math.max(2, Math.min(64, config.gpgpuNBodySampleCount));
     velSimMat.uniforms.uTexSizeF.value       = texSize;
+    velSimMat.uniforms.uCurlEnabled.value       = config.gpgpuCurlEnabled;
+    velSimMat.uniforms.uCurlStrength.value      = config.gpgpuCurlStrength;
+    velSimMat.uniforms.uCurlScale.value         = config.gpgpuCurlScale;
+    velSimMat.uniforms.uBoidsEnabled.value      = config.gpgpuBoidsEnabled;
+    velSimMat.uniforms.uBoidsSeparation.value   = config.gpgpuBoidsSeparation;
+    velSimMat.uniforms.uBoidsAlignment.value    = config.gpgpuBoidsAlignment;
+    velSimMat.uniforms.uBoidsCohesion.value     = config.gpgpuBoidsCohesion;
+    velSimMat.uniforms.uBoidsRadius.value       = config.gpgpuBoidsRadius;
+    velSimMat.uniforms.uAttractorEnabled.value  = config.gpgpuAttractorEnabled;
+    velSimMat.uniforms.uAttractorType.value     = config.gpgpuAttractorType === 'lorenz' ? 0 : config.gpgpuAttractorType === 'rossler' ? 1 : 2;
+    velSimMat.uniforms.uAttractorStrength.value = config.gpgpuAttractorStrength;
+    velSimMat.uniforms.uAttractorScale.value    = config.gpgpuAttractorScale;
     simMeshRef.current.material = velSimMat;
     glCtx.setRenderTarget(velOut); glCtx.render(simScene, simCamera);
 

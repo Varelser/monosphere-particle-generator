@@ -288,6 +288,47 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
                 </>
               )}
             </div>
+
+            {/* Curl Noise */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Curl Noise" value={config.gpgpuCurlEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuCurlEnabled', v)} />
+              {config.gpgpuCurlEnabled && (
+                <>
+                  <Slider label="Strength" value={config.gpgpuCurlStrength} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuCurlStrength', v)} />
+                  <Slider label="Scale" value={config.gpgpuCurlScale} min={0.001} max={0.05} step={0.001} onChange={(v) => updateConfig('gpgpuCurlScale', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Boids */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Boids Flocking" value={config.gpgpuBoidsEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuBoidsEnabled', v)} />
+              {config.gpgpuBoidsEnabled && (
+                <>
+                  <Slider label="Separation" value={config.gpgpuBoidsSeparation} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuBoidsSeparation', v)} />
+                  <Slider label="Alignment" value={config.gpgpuBoidsAlignment} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuBoidsAlignment', v)} />
+                  <Slider label="Cohesion" value={config.gpgpuBoidsCohesion} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuBoidsCohesion', v)} />
+                  <Slider label="Radius" value={config.gpgpuBoidsRadius} min={5} max={200} step={5} onChange={(v) => updateConfig('gpgpuBoidsRadius', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Strange Attractor */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Strange Attractor" value={config.gpgpuAttractorEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuAttractorEnabled', v)} />
+              {config.gpgpuAttractorEnabled && (
+                <>
+                  <Toggle
+                    label="Type"
+                    value={config.gpgpuAttractorType}
+                    options={[{ label: 'Lorenz', val: 'lorenz' }, { label: 'Rössler', val: 'rossler' }, { label: 'Thomas', val: 'thomas' }]}
+                    onChange={(v) => updateConfig('gpgpuAttractorType', v)}
+                  />
+                  <Slider label="Strength" value={config.gpgpuAttractorStrength} min={0} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuAttractorStrength', v)} />
+                  <Slider label="Scale" value={config.gpgpuAttractorScale} min={0.5} max={50} step={0.5} onChange={(v) => updateConfig('gpgpuAttractorScale', v)} />
+                </>
+              )}
+            </div>
           </>
         )}
       </div>

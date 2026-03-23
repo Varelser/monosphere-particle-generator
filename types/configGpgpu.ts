@@ -36,4 +36,19 @@ export interface ParticleConfigGpgpu {
   gpgpuAgeMax: number;
   gpgpuAgeFadeIn: number;
   gpgpuAgeFadeOut: number;
+  // Curl Noise
+  gpgpuCurlEnabled: boolean;
+  gpgpuCurlStrength: number;
+  gpgpuCurlScale: number;
+  // Boids
+  gpgpuBoidsEnabled: boolean;
+  gpgpuBoidsSeparation: number;
+  gpgpuBoidsAlignment: number;
+  gpgpuBoidsCohesion: number;
+  gpgpuBoidsRadius: number;
+  // Strange Attractor
+  gpgpuAttractorEnabled: boolean;
+  gpgpuAttractorType: 'lorenz' | 'rossler' | 'thomas';
+  gpgpuAttractorStrength: number;
+  gpgpuAttractorScale: number;
 }
