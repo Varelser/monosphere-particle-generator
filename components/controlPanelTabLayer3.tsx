@@ -185,6 +185,19 @@ export const Layer3TabContent: React.FC<ControlPanelContentProps> = ({ config, l
         </div>
         <div className="border-b border-white/10 pb-4 mb-4">
           <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">L3: Structure</h3>
+          <div className="mb-4">
+            <div className="mb-2 text-[10px] uppercase tracking-widest font-medium opacity-70">Particle Color</div>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={config.layer3Color}
+                onChange={(e) => updateConfig('layer3Color', e.target.value)}
+                className="h-8 w-12 cursor-pointer rounded border border-white/20 bg-transparent p-0.5"
+              />
+              <span className="font-mono text-[10px] opacity-60">{config.layer3Color.toUpperCase()}</span>
+              <button onClick={() => updateConfig('layer3Color', '#ffffff')} className="ml-auto rounded border border-white/15 bg-white/5 px-2 py-1 text-[9px] uppercase hover:bg-white/10">Reset</button>
+            </div>
+          </div>
           <Slider label="Particle Count" value={config.layer3Count} min={0} max={2000000} step={1000} onChange={(v) => updateConfig('layer3Count', v)} />
           <Slider label="Radius Scale" value={config.layer3RadiusScale} min={0.1} max={100.0} step={0.01} onChange={(v) => updateConfig('layer3RadiusScale', v)} />
           <Slider label="Particle Size" value={config.layer3BaseSize} min={0.1} max={100} step={0.1} onChange={(v) => updateConfig('layer3BaseSize', v)} />

@@ -91,6 +91,7 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   audioWarpScale: 1.25,
   audioLineScale: 1.2,
   audioCameraScale: 1.15,
+  audioHueShiftScale: 0,
 
   // Synth
   synthWaveform: 'sawtooth',
@@ -104,6 +105,7 @@ export const DEFAULT_CONFIG: ParticleConfig = {
 
   // Layer 1
   layer1Enabled: true,
+  layer1Color: '#ffffff',
   layer1Count: 2000,
   layer1SourceCount: 1,
   layer1SourceSpread: 200,
@@ -124,6 +126,7 @@ export const DEFAULT_CONFIG: ParticleConfig = {
 
   // Layer 2
   layer2Enabled: false,
+  layer2Color: '#ffffff',
   layer2Source: 'sphere',
   layer2SourceCount: 1,
   layer2SourceSpread: 200,
@@ -213,6 +216,7 @@ export const DEFAULT_CONFIG: ParticleConfig = {
 
   // Layer 3
   layer3Enabled: false,
+  layer3Color: '#ffffff',
   layer3Source: 'sphere',
   layer3SourceCount: 1,
   layer3SourceSpread: 200,
@@ -300,8 +304,26 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   layer3SparkDiffusion: 2.2,
   layer3SparkBurst: 1.05,
 
+  // SDF Particle Shape & Pseudo-3D Lighting
+  sdfShapeEnabled: false,
+  sdfShape: 'sphere' as const,
+  sdfLightX: 0.5,
+  sdfLightY: 0.7,
+  sdfSpecularIntensity: 0.8,
+  sdfSpecularShininess: 16.0,
+  sdfAmbientLight: 0.3,
+
+  // Post Processing
+  postBloomEnabled: false,
+  postBloomIntensity: 1.0,
+  postBloomRadius: 0.4,
+  postBloomThreshold: 0.15,
+  postChromaticAberrationEnabled: false,
+  postChromaticAberrationOffset: 0.003,
+
   // Ambient Layer
   ambientEnabled: false,
+  ambientColor: '#888888',
   ambientCount: 200,
   ambientSpread: 800,
   ambientSpeed: 0.003,

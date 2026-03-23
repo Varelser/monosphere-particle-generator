@@ -15,6 +15,7 @@ export interface ParticleConfigLayer1 {
   layer1PulseSpeeds: number[];
   layer1PulseAmps: number[];
 
+  layer1Color: string;
   baseSize: number;
   sphereRadius: number;
   layer1Volume: number;

@@ -2,6 +2,7 @@ import type { Layer2Type, Layer3Source, ParticleBurstMode, ParticleBurstWaveform
 
 export interface ParticleConfigLayer3 {
   layer3Enabled: boolean;
+  layer3Color: string;
   layer3Source: Layer3Source;
   layer3SourceCount: number;
   layer3SourceSpread: number;

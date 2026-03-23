@@ -58,4 +58,21 @@ export interface ParticleConfigCore {
   depthFogFar: number;
   exportScale: number;
   exportTransparent: boolean;
+
+  // SDF Particle Shape & Pseudo-3D Lighting
+  sdfShapeEnabled: boolean;
+  sdfShape: 'sphere' | 'ring' | 'star' | 'hexagon';
+  sdfLightX: number;
+  sdfLightY: number;
+  sdfSpecularIntensity: number;
+  sdfSpecularShininess: number;
+  sdfAmbientLight: number;
+
+  // Post Processing
+  postBloomEnabled: boolean;
+  postBloomIntensity: number;
+  postBloomRadius: number;
+  postBloomThreshold: number;
+  postChromaticAberrationEnabled: boolean;
+  postChromaticAberrationOffset: number;
 }

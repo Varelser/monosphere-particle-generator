@@ -121,6 +121,60 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
           </>
         )}
       </div>
+      <div className="mt-5 rounded border border-white/10 bg-white/5 p-3">
+        <div className="mb-3 text-[10px] uppercase tracking-widest font-bold text-white/70">Particle Shape &amp; Lighting</div>
+        <Toggle
+          label="SDF Shape Mode"
+          value={config.sdfShapeEnabled}
+          options={[{ label: 'On', val: true }, { label: 'Off', val: false }]}
+          onChange={(v) => updateConfig('sdfShapeEnabled', v)}
+        />
+        {config.sdfShapeEnabled && (
+          <>
+            <Toggle
+              label="Shape"
+              value={config.sdfShape}
+              options={[
+                { label: 'Sphere', val: 'sphere' },
+                { label: 'Ring', val: 'ring' },
+                { label: 'Star', val: 'star' },
+                { label: 'Hex', val: 'hexagon' },
+              ]}
+              onChange={(v) => updateConfig('sdfShape', v)}
+            />
+            <Slider label="Specular Intensity" value={config.sdfSpecularIntensity} min={0} max={3} step={0.05} onChange={(v) => updateConfig('sdfSpecularIntensity', v)} />
+            <Slider label="Shininess" value={config.sdfSpecularShininess} min={1} max={64} step={1} onChange={(v) => updateConfig('sdfSpecularShininess', v)} />
+            <Slider label="Ambient Light" value={config.sdfAmbientLight} min={0} max={1} step={0.01} onChange={(v) => updateConfig('sdfAmbientLight', v)} />
+            <Slider label="Light X" value={config.sdfLightX} min={-1} max={1} step={0.01} onChange={(v) => updateConfig('sdfLightX', v)} />
+            <Slider label="Light Y" value={config.sdfLightY} min={-1} max={1} step={0.01} onChange={(v) => updateConfig('sdfLightY', v)} />
+          </>
+        )}
+      </div>
+      <div className="mt-5 rounded border border-white/10 bg-white/5 p-3">
+        <div className="mb-3 text-[10px] uppercase tracking-widest font-bold text-white/70">Post Processing</div>
+        <Toggle
+          label="Bloom"
+          value={config.postBloomEnabled}
+          options={[{ label: 'On', val: true }, { label: 'Off', val: false }]}
+          onChange={(v) => updateConfig('postBloomEnabled', v)}
+        />
+        {config.postBloomEnabled && (
+          <>
+            <Slider label="Bloom Intensity" value={config.postBloomIntensity} min={0} max={5} step={0.05} onChange={(v) => updateConfig('postBloomIntensity', v)} />
+            <Slider label="Bloom Radius" value={config.postBloomRadius} min={0} max={1} step={0.01} onChange={(v) => updateConfig('postBloomRadius', v)} />
+            <Slider label="Luminance Threshold" value={config.postBloomThreshold} min={0} max={1} step={0.01} onChange={(v) => updateConfig('postBloomThreshold', v)} />
+          </>
+        )}
+        <Toggle
+          label="Chromatic Aberration"
+          value={config.postChromaticAberrationEnabled}
+          options={[{ label: 'On', val: true }, { label: 'Off', val: false }]}
+          onChange={(v) => updateConfig('postChromaticAberrationEnabled', v)}
+        />
+        {config.postChromaticAberrationEnabled && (
+          <Slider label="CA Offset" value={config.postChromaticAberrationOffset} min={0} max={0.01} step={0.0001} onChange={(v) => updateConfig('postChromaticAberrationOffset', v)} />
+        )}
+      </div>
       <Toggle label="Depth Fog" value={config.depthFogEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('depthFogEnabled', v)} />
       {config.depthFogEnabled && (
         <>

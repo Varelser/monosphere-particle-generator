@@ -233,7 +233,8 @@ export const ParticleSystem: React.FC<{
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uOpacity: { value: config.opacity },
-    uColor: { value: new THREE.Color(config.particleColor) },
+    uColor: { value: new THREE.Color('#ffffff') },
+    uHueShift: { value: 0 },
     uContrast: { value: config.contrast },
     uInkMode: { value: config.particleColor === 'black' ? 1 : 0 },
     uSoftness: { value: config.particleSoftness },
@@ -314,7 +315,13 @@ export const ParticleSystem: React.FC<{
     uInterLayerColliders: { value: Array.from({ length: MAX_INTER_LAYER_COLLIDERS }, () => new THREE.Vector4(0, 0, 0, 0)) },
     uInterLayerStrength: { value: 0 },
     uInterLayerPadding: { value: 0 },
-  }), [config.opacity, config.particleColor, config.contrast, config.particleSoftness, config.particleGlow, isAux]);
+    uSdfEnabled: { value: 0 },
+    uSdfShape: { value: 0 },
+    uSdfLight: { value: new THREE.Vector2(0.5, 0.7) },
+    uSdfSpecular: { value: 0.8 },
+    uSdfShininess: { value: 16.0 },
+    uSdfAmbient: { value: 0.3 },
+  }), [config.opacity, config.contrast, config.particleSoftness, config.particleGlow, isAux]);
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
@@ -373,9 +380,16 @@ export const ParticleSystem: React.FC<{
 
     mat.uniforms.uMouse.value.set(state.pointer.x, state.pointer.y);
     mat.uniforms.uOpacity.value = config.opacity * (isAux ? (auxMode === 'spark' ? 0.85 : 0.7) : 1.0);
-    mat.uniforms.uColor.value.set(config.particleColor);
+    const layerHex = layerIndex === 1 ? config.layer1Color : layerIndex === 2 ? config.layer2Color : layerIndex === 3 ? config.layer3Color : (config.ambientColor ?? '#888888');
+    mat.uniforms.uColor.value.setStyle(layerHex);
     mat.uniforms.uContrast.value = config.contrast;
     mat.uniforms.uInkMode.value = config.particleColor === 'black' ? 1 : 0;
+    if (config.audioEnabled && config.audioHueShiftScale > 0.001) {
+      const hueShift = (audioRef.current.bass * 0.35 + audioRef.current.treble * 0.2 + audioRef.current.pulse * 0.45) * config.audioHueShiftScale * 0.3;
+      mat.uniforms.uHueShift.value = hueShift;
+    } else {
+      mat.uniforms.uHueShift.value = 0;
+    }
     mat.uniforms.uSoftness.value = config.particleSoftness;
     const impactGlowBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled
       ? contactAmount * config.interLayerContactGlowBoost
@@ -586,6 +600,14 @@ export const ParticleSystem: React.FC<{
 
     mat.uniforms.uInterLayerStrength.value = config.interLayerCollisionStrength * collisionAudioBoost;
     mat.uniforms.uInterLayerPadding.value = config.interLayerCollisionPadding;
+
+    // SDF shape + lighting uniforms
+    mat.uniforms.uSdfEnabled.value = config.sdfShapeEnabled ? 1 : 0;
+    mat.uniforms.uSdfShape.value = config.sdfShape === 'ring' ? 1 : config.sdfShape === 'star' ? 2 : config.sdfShape === 'hexagon' ? 3 : 0;
+    mat.uniforms.uSdfLight.value.set(config.sdfLightX, config.sdfLightY);
+    mat.uniforms.uSdfSpecular.value = config.sdfSpecularIntensity;
+    mat.uniforms.uSdfShininess.value = config.sdfSpecularShininess;
+    mat.uniforms.uSdfAmbient.value = config.sdfAmbientLight;
   });
 
   if (!data) return null;
@@ -605,14 +627,14 @@ export const ParticleSystem: React.FC<{
           <instancedBufferAttribute attach="attributes-aData3" args={[data.d3, 4]} />
         </planeGeometry>
         <shaderMaterial
-          key={`mat-${config.particleColor}`}
+          key={`mat-${config.backgroundColor}`}
           vertexShader={PARTICLE_VERTEX_SHADER}
           fragmentShader={FRAGMENT_SHADER}
           uniforms={uniforms}
           transparent={true}
           depthWrite={false}
           side={THREE.DoubleSide}
-          blending={getParticleBlendMode(config.particleColor)}
+          blending={getParticleBlendMode(config.backgroundColor)}
         />
       </instancedMesh>
       {showLines && <LineSystem config={config} layerIndex={layerIndex as 2 | 3} particleData={data} uniforms={uniforms} globalRadius={lineRadius} connectionDistance={connDist} connectionOpacity={connOp} contactAmount={contactAmount} isPlaying={isPlaying} />}

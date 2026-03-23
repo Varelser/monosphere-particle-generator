@@ -185,6 +185,19 @@ export const Layer2TabContent: React.FC<ControlPanelContentProps> = ({ config, l
         </div>
         <div className="border-b border-white/10 pb-4 mb-4">
           <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">L2: Structure</h3>
+          <div className="mb-4">
+            <div className="mb-2 text-[10px] uppercase tracking-widest font-medium opacity-70">Particle Color</div>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={config.layer2Color}
+                onChange={(e) => updateConfig('layer2Color', e.target.value)}
+                className="h-8 w-12 cursor-pointer rounded border border-white/20 bg-transparent p-0.5"
+              />
+              <span className="font-mono text-[10px] opacity-60">{config.layer2Color.toUpperCase()}</span>
+              <button onClick={() => updateConfig('layer2Color', '#ffffff')} className="ml-auto rounded border border-white/15 bg-white/5 px-2 py-1 text-[9px] uppercase hover:bg-white/10">Reset</button>
+            </div>
+          </div>
           <Slider label="Particle Count" value={config.layer2Count} min={0} max={2000000} step={1000} onChange={(v) => updateConfig('layer2Count', v)} />
           <Slider label="Radius Scale" value={config.layer2RadiusScale} min={0.1} max={100.0} step={0.01} onChange={(v) => updateConfig('layer2RadiusScale', v)} />
           <Slider label="Particle Size" value={config.layer2BaseSize} min={0.1} max={100} step={0.1} onChange={(v) => updateConfig('layer2BaseSize', v)} />

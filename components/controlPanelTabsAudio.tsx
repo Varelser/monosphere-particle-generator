@@ -15,6 +15,19 @@ export const AmbientTabContent: React.FC<ControlPanelContentProps> = ({ config, 
         <Slider label="Spread / Range" value={config.ambientSpread} min={100} max={5000} step={10} onChange={(v) => updateConfig('ambientSpread', v)} />
         <Slider label="Drift Speed" value={config.ambientSpeed} min={0} max={2.0} step={0.001} onChange={(v) => updateConfig('ambientSpeed', v)} />
         <Slider label="Particle Size" value={config.ambientBaseSize} min={0.1} max={50} step={0.1} onChange={(v) => updateConfig('ambientBaseSize', v)} />
+        <div className="mb-4">
+          <div className="mb-2 text-[10px] uppercase tracking-widest font-medium opacity-70">Dust Color</div>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={config.ambientColor}
+              onChange={(e) => updateConfig('ambientColor', e.target.value)}
+              className="h-8 w-12 cursor-pointer rounded border border-white/20 bg-transparent p-0.5"
+            />
+            <span className="font-mono text-[10px] opacity-60">{config.ambientColor.toUpperCase()}</span>
+            <button onClick={() => updateConfig('ambientColor', '#888888')} className="ml-auto rounded border border-white/15 bg-white/5 px-2 py-1 text-[9px] uppercase hover:bg-white/10">Reset</button>
+          </div>
+        </div>
       </>
     )}
   </div>
@@ -157,5 +170,6 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
     <Slider label="Audio -> Radial Warp" value={config.audioWarpScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioWarpScale', v)} />
     <Slider label="Audio -> Lines" value={config.audioLineScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioLineScale', v)} />
     <Slider label="Audio -> Camera" value={config.audioCameraScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioCameraScale', v)} />
+    <Slider label="Audio -> Hue Shift" value={config.audioHueShiftScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioHueShiftScale', v)} />
   </div>
 );

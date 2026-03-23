@@ -1,6 +1,8 @@
 import React from 'react';
 import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, OrthographicCamera, PerspectiveCamera } from '@react-three/drei';
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { ParticleConfig } from '../types';
@@ -234,6 +236,27 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
         isSequencePlaying={isSequencePlaying}
         sequenceStepProgress={sequenceStepProgress}
       />
+      {(config.postBloomEnabled || config.postChromaticAberrationEnabled) && (
+        <EffectComposer>
+          {config.postBloomEnabled ? (
+            <Bloom
+              intensity={config.postBloomIntensity}
+              radius={config.postBloomRadius}
+              luminanceThreshold={config.postBloomThreshold}
+              luminanceSmoothing={0.1}
+              mipmapBlur
+            />
+          ) : <></>}
+          {config.postChromaticAberrationEnabled ? (
+            <ChromaticAberration
+              blendFunction={BlendFunction.NORMAL}
+              offset={new THREE.Vector2(config.postChromaticAberrationOffset, config.postChromaticAberrationOffset)}
+              radialModulation={false}
+              modulationOffset={0}
+            />
+          ) : <></>}
+        </EffectComposer>
+      )}
     </Canvas>
   );
 });

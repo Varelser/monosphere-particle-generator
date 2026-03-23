@@ -226,6 +226,7 @@ export const LineSystem: React.FC<{
     mat.uniforms.uInterLayerColliders.value = uniforms.uInterLayerColliders.value;
     mat.uniforms.uInterLayerStrength.value = uniforms.uInterLayerStrength.value;
     mat.uniforms.uInterLayerPadding.value = uniforms.uInterLayerPadding.value;
+    mat.uniforms.uHueShift.value = uniforms.uHueShift?.value ?? 0;
   });
 
   if (!lineData) return null;
@@ -268,11 +269,12 @@ export const LineSystem: React.FC<{
           uLineBurstPulse: { value: 0 },
           uLineShimmer: { value: 0 },
           uLineFlickerSpeed: { value: 1 },
+          uHueShift: { value: 0 },
         }}
-        key={`line-mat-${config.particleColor}`}
+        key={`line-mat-${config.backgroundColor}`}
         transparent={true}
         depthWrite={false}
-        blending={getLineBlendMode(config.particleColor)}
+        blending={getLineBlendMode(config.backgroundColor)}
       />
     </lineSegments>
   );

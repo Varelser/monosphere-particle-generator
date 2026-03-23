@@ -13,6 +13,19 @@ export const Layer1TabContent: React.FC<ControlPanelContentProps> = ({ config, l
           <Slider label="Total Core Count" value={config.layer1Count} min={100} max={2000000} step={1000} onChange={(v) => updateConfig('layer1Count', v)} />
           <Slider label="Base Radius (Global)" value={config.sphereRadius} min={10} max={2000} step={10} onChange={(v) => updateConfig('sphereRadius', v)} />
           <Slider label="Particle Size (Global)" value={config.baseSize} min={0.1} max={100} step={0.1} onChange={(v) => updateConfig('baseSize', v)} />
+          <div className="mb-4">
+            <div className="mb-2 text-[10px] uppercase tracking-widest font-medium opacity-70">Particle Color</div>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={config.layer1Color}
+                onChange={(e) => updateConfig('layer1Color', e.target.value)}
+                className="h-8 w-12 cursor-pointer rounded border border-white/20 bg-transparent p-0.5"
+              />
+              <span className="font-mono text-[10px] opacity-60">{config.layer1Color.toUpperCase()}</span>
+              <button onClick={() => updateConfig('layer1Color', '#ffffff')} className="ml-auto rounded border border-white/15 bg-white/5 px-2 py-1 text-[9px] uppercase hover:bg-white/10">Reset</button>
+            </div>
+          </div>
           <Slider label="Volume Density (Global)" value={config.layer1Volume} min={0} max={1} step={0.001} onChange={(v) => updateConfig('layer1Volume', v)} />
           <div className="border-t border-white/10 pt-4 mt-4">
             <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4 flex items-center gap-2">

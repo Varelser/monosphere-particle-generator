@@ -25,6 +25,7 @@ export interface ParticleConfigAudio {
   audioWarpScale: number;
   audioLineScale: number;
   audioCameraScale: number;
+  audioHueShiftScale: number;
   synthWaveform: SynthWaveform;
   synthScale: SynthScale;
   synthBaseFrequency: number;
