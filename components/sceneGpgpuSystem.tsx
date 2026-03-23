@@ -805,9 +805,11 @@ type GpgpuSystemProps = {
   audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
   config: ParticleConfig;
   isPlaying: boolean;
+  /** When metaballs are enabled, filled each frame with RGBA float32 particle positions. */
+  posReadbackRef?: React.RefObject<Float32Array | null>;
 };
 
-export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, config, isPlaying }) => {
+export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, config, isPlaying, posReadbackRef }) => {
   const { gl, camera } = useThree();
   const mouseNDC      = useRef(new THREE.Vector2(0, 0));
   const mouseWorldRef = useRef(new THREE.Vector3(0, 0, 0));
@@ -1505,6 +1507,16 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     }
 
     glCtx.setRenderTarget(null);
+
+    // Metaball position readback (sync GPU→CPU, only when enabled)
+    if (posReadbackRef && config.gpgpuMetaballEnabled && !useWebGPU) {
+      const N = texSize * texSize;
+      if (!posReadbackRef.current || posReadbackRef.current.length !== N * 4) {
+        (posReadbackRef as React.MutableRefObject<Float32Array | null>).current = new Float32Array(N * 4);
+      }
+      glCtx.readRenderTargetPixels(posOut, 0, 0, texSize, texSize, posReadbackRef.current!);
+    }
+
     pingIsA.current = !isA;
 
     // Sparse GPGPU + LOD: limit draw to active particle count

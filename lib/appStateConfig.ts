@@ -434,6 +434,15 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuFluidExtForce: false,
   // WebGPU Compute Backend
   gpgpuWebGPUEnabled: false,
+  // Metaballs
+  gpgpuMetaballEnabled: false,
+  gpgpuMetaballResolution: 28,
+  gpgpuMetaballStrength: 1.2,
+  gpgpuMetaballIsoLevel: 80,
+  gpgpuMetaballColor: '#88aaff',
+  gpgpuMetaballOpacity: 0.75,
+  gpgpuMetaballWireframe: false,
+  gpgpuMetaballParticleLimit: 1024,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

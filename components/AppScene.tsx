@@ -10,6 +10,7 @@ import { getConfigPerformanceScore } from '../lib/performanceHints';
 import { getBurstDriveEnergy } from './sceneBurstDrive';
 import { ParticleSystem, SceneGroup, ScreenOverlay, ScreenshotManager } from './scenePrimitives';
 import { GpgpuSystem } from './sceneGpgpuSystem';
+import { MetaballSystem, getTexSizeForCount } from './sceneMetaballSystem';
 
 extend({
   InstancedMesh: THREE.InstancedMesh,
@@ -156,6 +157,7 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
   const controlsRef = React.useRef<OrbitControlsImpl | null>(null);
   const isInteractingRef = React.useRef(false);
   const adaptiveDpr = React.useMemo(() => getAdaptiveDprRange(config), [config]);
+  const metaballPosRef = React.useRef<Float32Array | null>(null);
   const antialias = React.useMemo(() => shouldUseAntialias(config), [config]);
 
   return (
@@ -229,7 +231,15 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
           <ParticleSystem config={config} layerIndex={4} audioRef={audioRef} isPlaying={isPlaying} contactAmount={interLayerContactAmount} />
         )}
         {config.gpgpuEnabled && (
-          <GpgpuSystem config={config} audioRef={audioRef} isPlaying={isPlaying} />
+          <GpgpuSystem config={config} audioRef={audioRef} isPlaying={isPlaying} posReadbackRef={metaballPosRef} />
+        )}
+        {config.gpgpuEnabled && config.gpgpuMetaballEnabled && (
+          <MetaballSystem
+            config={config}
+            posReadbackRef={metaballPosRef}
+            texSize={getTexSizeForCount(config.gpgpuCount)}
+            isPlaying={isPlaying}
+          />
         )}
       </SceneGroup>
       <ScreenOverlay

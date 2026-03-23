@@ -131,4 +131,13 @@ export interface ParticleConfigGpgpu {
   gpgpuFluidExtForce: boolean;
   // WebGPU Compute Backend
   gpgpuWebGPUEnabled: boolean;
+  // Metaballs (Marching Cubes isosurface)
+  gpgpuMetaballEnabled: boolean;
+  gpgpuMetaballResolution: number;
+  gpgpuMetaballStrength: number;
+  gpgpuMetaballIsoLevel: number;
+  gpgpuMetaballColor: string;
+  gpgpuMetaballOpacity: number;
+  gpgpuMetaballWireframe: boolean;
+  gpgpuMetaballParticleLimit: number;
 }
