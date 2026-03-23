@@ -1,10 +1,46 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { ParticleConfig } from '../types';
 import { getInterLayerCollidersForLayer, MAX_INTER_LAYER_COLLIDERS } from '../lib/appState';
 import { generateParticleData } from './particleData';
-import type { AuxMode } from './particleData';
+import type { AuxMode, ParticleData } from './particleData';
+import ParticleDataWorker from '../workers/particleDataWorker?worker';
+
+// Worker instance + request ID counter (shared across component instances)
+let _workerInstance: Worker | null = null;
+let _workerReqId = 0;
+const _workerCallbacks = new Map<number, (data: ParticleData | null) => void>();
+
+function getSharedWorker(): Worker {
+  if (!_workerInstance) {
+    _workerInstance = new ParticleDataWorker();
+    _workerInstance.onmessage = (e: MessageEvent<{ id: number; data: ParticleData | null }>) => {
+      const cb = _workerCallbacks.get(e.data.id);
+      if (cb) { _workerCallbacks.delete(e.data.id); cb(e.data.data); }
+    };
+  }
+  return _workerInstance;
+}
+
+function generateParticleDataAsync(
+  config: ParticleConfig,
+  layerIndex: 1 | 2 | 3 | 4,
+  isAux: boolean,
+  auxMode: AuxMode,
+): Promise<ParticleData | null> {
+  return new Promise((resolve) => {
+    const id = ++_workerReqId;
+    _workerCallbacks.set(id, resolve);
+    try {
+      getSharedWorker().postMessage({ id, config, layerIndex, isAux, auxMode });
+    } catch {
+      // Worker unavailable (e.g., SharedArrayBuffer policy) — fall back to sync
+      _workerCallbacks.delete(id);
+      resolve(generateParticleData(config, layerIndex, isAux, auxMode));
+    }
+  });
+}
 import { FRAGMENT_SHADER, PARTICLE_VERTEX_SHADER } from './sceneShaders';
 import { LineSystem } from './sceneLineSystem';
 import { getParticleBlendMode } from './sceneShared';
@@ -229,7 +265,16 @@ export const ParticleSystem: React.FC<{
     ] : [config.ambientCount, config.ambientSpread],
   ]), [config, layerIndex, isAux, auxMode]);
 
-  const data = useMemo(() => generateParticleData(config, layerIndex, isAux, auxMode), [geometryKey]);
+  const [data, setData] = useState<ParticleData | null>(null);
+  useEffect(() => {
+    setData(null);
+    let cancelled = false;
+    generateParticleDataAsync(config, layerIndex, isAux, auxMode).then((d) => {
+      if (!cancelled) setData(d);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geometryKey]);
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uOpacity: { value: config.opacity },
@@ -321,6 +366,8 @@ export const ParticleSystem: React.FC<{
     uSdfSpecular: { value: 0.8 },
     uSdfShininess: { value: 16.0 },
     uSdfAmbient: { value: 0.3 },
+    uInstanced3D: { value: 0 },
+    uInstanced3DScale: { value: 1.0 },
   }), [config.opacity, config.contrast, config.particleSoftness, config.particleGlow, isAux]);
 
   useFrame((state, delta) => {
@@ -608,9 +655,18 @@ export const ParticleSystem: React.FC<{
     mat.uniforms.uSdfSpecular.value = config.sdfSpecularIntensity;
     mat.uniforms.uSdfShininess.value = config.sdfSpecularShininess;
     mat.uniforms.uSdfAmbient.value = config.sdfAmbientLight;
+
+    // Instanced 3D geometry uniforms
+    const geomMode3D = layerIndex === 2 ? config.layer2GeomMode3D : layerIndex === 3 ? config.layer3GeomMode3D : 'billboard';
+    const geomScale3D = layerIndex === 2 ? config.layer2GeomScale3D : layerIndex === 3 ? config.layer3GeomScale3D : 1.0;
+    mat.uniforms.uInstanced3D.value = geomMode3D !== 'billboard' ? 1 : 0;
+    mat.uniforms.uInstanced3DScale.value = geomScale3D;
   });
 
   if (!data) return null;
+
+  const geomMode3D = layerIndex === 2 ? config.layer2GeomMode3D : layerIndex === 3 ? config.layer3GeomMode3D : 'billboard';
+
   const showLines = !isAux && ((layerIndex === 2 && config.layer2ConnectionEnabled) || (layerIndex === 3 && config.layer3ConnectionEnabled));
   const lineRadius = layerIndex === 2 ? config.sphereRadius * config.layer2RadiusScale : layerIndex === 3 ? config.sphereRadius * config.layer3RadiusScale : config.sphereRadius;
   const connDist = layerIndex === 2 ? config.layer2ConnectionDistance : layerIndex === 3 ? config.layer3ConnectionDistance : 50;
@@ -619,13 +675,31 @@ export const ParticleSystem: React.FC<{
   return (
     <group>
       <instancedMesh key={geometryKey} ref={meshRef} args={[undefined, undefined, data.count]}>
-        <planeGeometry args={[1, 1]}>
-          <instancedBufferAttribute attach="attributes-aPosition" args={[data.pos, 3]} />
-          <instancedBufferAttribute attach="attributes-aOffset" args={[data.off, 3]} />
-          <instancedBufferAttribute attach="attributes-aData1" args={[data.d1, 4]} />
-          <instancedBufferAttribute attach="attributes-aData2" args={[data.d2, 4]} />
-          <instancedBufferAttribute attach="attributes-aData3" args={[data.d3, 4]} />
-        </planeGeometry>
+        {geomMode3D === 'cube' ? (
+          <boxGeometry args={[1, 1, 1]}>
+            <instancedBufferAttribute attach="attributes-aPosition" args={[data.pos, 3]} />
+            <instancedBufferAttribute attach="attributes-aOffset" args={[data.off, 3]} />
+            <instancedBufferAttribute attach="attributes-aData1" args={[data.d1, 4]} />
+            <instancedBufferAttribute attach="attributes-aData2" args={[data.d2, 4]} />
+            <instancedBufferAttribute attach="attributes-aData3" args={[data.d3, 4]} />
+          </boxGeometry>
+        ) : geomMode3D === 'tetra' ? (
+          <tetrahedronGeometry args={[0.7]}>
+            <instancedBufferAttribute attach="attributes-aPosition" args={[data.pos, 3]} />
+            <instancedBufferAttribute attach="attributes-aOffset" args={[data.off, 3]} />
+            <instancedBufferAttribute attach="attributes-aData1" args={[data.d1, 4]} />
+            <instancedBufferAttribute attach="attributes-aData2" args={[data.d2, 4]} />
+            <instancedBufferAttribute attach="attributes-aData3" args={[data.d3, 4]} />
+          </tetrahedronGeometry>
+        ) : (
+          <planeGeometry args={[1, 1]}>
+            <instancedBufferAttribute attach="attributes-aPosition" args={[data.pos, 3]} />
+            <instancedBufferAttribute attach="attributes-aOffset" args={[data.off, 3]} />
+            <instancedBufferAttribute attach="attributes-aData1" args={[data.d1, 4]} />
+            <instancedBufferAttribute attach="attributes-aData2" args={[data.d2, 4]} />
+            <instancedBufferAttribute attach="attributes-aData3" args={[data.d3, 4]} />
+          </planeGeometry>
+        )}
         <shaderMaterial
           key={`mat-${config.backgroundColor}`}
           vertexShader={PARTICLE_VERTEX_SHADER}

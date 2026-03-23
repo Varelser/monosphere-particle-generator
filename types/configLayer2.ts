@@ -97,4 +97,6 @@ export interface ParticleConfigLayer2 {
   layer2SparkLife: number;
   layer2SparkDiffusion: number;
   layer2SparkBurst: number;
+  layer2GeomMode3D: 'billboard' | 'cube' | 'tetra';
+  layer2GeomScale3D: number;
 }

@@ -129,4 +129,6 @@ export interface ParticleConfigGpgpu {
   gpgpuFluidInfluence: number;
   gpgpuFluidScale: number;
   gpgpuFluidExtForce: boolean;
+  // WebGPU Compute Backend
+  gpgpuWebGPUEnabled: boolean;
 }

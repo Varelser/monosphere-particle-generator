@@ -8,6 +8,7 @@ export const PARTICLE_VERTEX_SHADER = `
     uniform float uGlobalComplexity;
   uniform float uGlobalEvolution; uniform float uGlobalFidelity; uniform float uGlobalOctaveMult;
   uniform float uGlobalFreq; uniform float uGlobalRadius; uniform float uGlobalSize;
+  uniform float uInstanced3D; uniform float uInstanced3DScale;
   uniform float uGravity; uniform vec3 uWind;
   uniform vec3 uSpin;
   uniform float uBoundaryY; uniform float uBoundaryEnabled; uniform float uBoundaryBounce;
@@ -247,8 +248,14 @@ export const PARTICLE_VERTEX_SHADER = `
     float streakStretch = 1.0 + trailAmount * (0.2 + max(0.0, uStreak));
     float streakWidth = max(0.16, 1.0 - trailAmount * 0.08 * (0.6 + max(0.0, uStreak)));
 
-    mvPosition.xy += trailPerp * position.x * clampedSize * streakWidth + trailDir * position.y * clampedSize * streakStretch;
-    gl_Position = projectionMatrix * mvPosition;
+    if (uInstanced3D > 0.5) {
+      // World-space 3D geometry: position.xyz is the local vertex of the geometry (cube/tetra)
+      float geomSize = aSizeFactor * uGlobalSize * uInstanced3DScale;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos + position.xyz * geomSize, 1.0);
+    } else {
+      mvPosition.xy += trailPerp * position.x * clampedSize * streakWidth + trailDir * position.y * clampedSize * streakStretch;
+      gl_Position = projectionMatrix * mvPosition;
+    }
     vLife = lifeProgress;
     vVelocity = clamp(trailMagnitude * 40.0, 0.0, 1.0);
     vSpriteMode = uSpriteMode;

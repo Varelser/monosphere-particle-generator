@@ -5,6 +5,7 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   viewMode: 'perspective',
   cameraControlMode: 'hybrid',
   renderQuality: 'balanced',
+  autoLod: false,
   rotationSpeedX: 0.0005,
   rotationSpeedY: 0.001,
   manualRotationX: 0,
@@ -213,6 +214,8 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   layer2SparkLife: 24,
   layer2SparkDiffusion: 2.5,
   layer2SparkBurst: 0.9,
+  layer2GeomMode3D: 'billboard' as const,
+  layer2GeomScale3D: 1.0,
 
   // Layer 3
   layer3Enabled: false,
@@ -303,6 +306,8 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   layer3SparkLife: 18,
   layer3SparkDiffusion: 2.2,
   layer3SparkBurst: 1.05,
+  layer3GeomMode3D: 'billboard' as const,
+  layer3GeomScale3D: 1.0,
 
   // GPGPU Layer
   gpgpuEnabled: false,
@@ -427,6 +432,8 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuFluidInfluence: 0.8,
   gpgpuFluidScale: 1.5,
   gpgpuFluidExtForce: false,
+  // WebGPU Compute Backend
+  gpgpuWebGPUEnabled: false,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

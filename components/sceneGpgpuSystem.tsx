@@ -2,6 +2,14 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { ParticleConfig } from '../types';
+import { LodSystem } from '../lib/lodSystem';
+import {
+  initWebGPUCompute,
+  stepWebGPUCompute,
+  readbackWebGPUPositions,
+  destroyWebGPUCompute,
+} from '../lib/webgpuCompute';
+import type { WebGPUComputeState } from '../lib/webgpuCompute';
 
 const MAX_TRAIL = 16;
 
@@ -817,6 +825,7 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     return () => canvas.removeEventListener('mousemove', onMove);
   }, [gl.domElement]);
 
+  const lodSystem = useMemo(() => new LodSystem(), []);
   const texSize = useMemo(() => getTexSize(config.gpgpuCount), [config.gpgpuCount]);
 
   // ── Sim scene ──
@@ -1129,6 +1138,9 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
   const fluidPingIsA  = useRef(true);
   const sortRTARef    = useRef<THREE.WebGLRenderTarget | null>(null);
   const sortRTBRef    = useRef<THREE.WebGLRenderTarget | null>(null);
+  const webgpuStateRef   = useRef<WebGPUComputeState | null>(null);
+  const webgpuPosTexRef  = useRef<THREE.DataTexture | null>(null);
+  const webgpuPingIsARef = useRef(true);
 
   useEffect(() => {
     if (rtRef.current) {
@@ -1241,6 +1253,26 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     copyScene.remove(fluidCopyMesh);
     fluidCopyMat.dispose(); fluidInitTex.dispose();
 
+    // WebGPU Compute Backend — async init; destroy previous state first
+    if (webgpuStateRef.current) { destroyWebGPUCompute(webgpuStateRef.current); webgpuStateRef.current = null; }
+    webgpuPosTexRef.current?.dispose(); webgpuPosTexRef.current = null;
+    // posData / velData captured in closure
+    const wgPos = posData.slice() as Float32Array;
+    const wgVel = velData.slice() as Float32Array;
+    initWebGPUCompute(texSize, wgPos, wgVel).then(state => {
+      webgpuStateRef.current = state;
+      webgpuPingIsARef.current = true;
+      if (state) {
+        const dt = new THREE.DataTexture(
+          new Float32Array(texSize * texSize * 4),
+          texSize, texSize,
+          THREE.RGBAFormat, THREE.FloatType,
+        );
+        dt.needsUpdate = true;
+        webgpuPosTexRef.current = dt;
+      }
+    });
+
     return () => {
       rtRef.current?.posA.dispose(); rtRef.current?.posB.dispose();
       rtRef.current?.velA.dispose(); rtRef.current?.velB.dispose();
@@ -1251,6 +1283,8 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       sortRTBRef.current?.dispose(); sortRTBRef.current = null;
       fluidRTARef.current?.dispose(); fluidRTARef.current = null;
       fluidRTBRef.current?.dispose(); fluidRTBRef.current = null;
+      if (webgpuStateRef.current) { destroyWebGPUCompute(webgpuStateRef.current); webgpuStateRef.current = null; }
+      webgpuPosTexRef.current?.dispose(); webgpuPosTexRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texSize, gl, config.gpgpuEmitShape]);
@@ -1262,6 +1296,7 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
 
     const dt = Math.min(delta, 0.05);
     timeRef.current += dt;
+    if (config.autoLod) lodSystem.update(dt);
 
     const { posA, posB, velA, velB } = rtRef.current;
     const isA   = pingIsA.current;
@@ -1311,7 +1346,30 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       velSimMat.uniforms.uFluidEnabled.value = false;
     }
 
-    // Pass 1: velocity
+    // Pass 1 (WebGPU path): skip WebGL sim, use native compute
+    const useWebGPU = config.gpgpuWebGPUEnabled && webgpuStateRef.current !== null && webgpuPosTexRef.current !== null;
+    if (useWebGPU && webgpuStateRef.current) {
+      stepWebGPUCompute(
+        webgpuStateRef.current,
+        webgpuPingIsARef.current,
+        dt,
+        timeRef.current,
+        config.gpgpuGravity,
+        config.gpgpuTurbulence,
+        config.gpgpuBounceRadius,
+        config.gpgpuBounce,
+        config.gpgpuSpeed,
+      );
+      webgpuPingIsARef.current = !webgpuPingIsARef.current;
+      const wgPosTex = webgpuPosTexRef.current!;
+      readbackWebGPUPositions(webgpuStateRef.current).then(data => {
+        wgPosTex.image.data.set(data);
+        wgPosTex.needsUpdate = true;
+      });
+    }
+
+    // Pass 1: velocity (WebGL path — skipped when WebGPU is active)
+    if (!useWebGPU) {
     velSimMat.uniforms.uPosTex.value       = posIn.texture;
     velSimMat.uniforms.uVelTex.value       = velIn.texture;
     velSimMat.uniforms.uDelta.value        = dt;
@@ -1405,6 +1463,7 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     posSimMat.uniforms.uSdfBounce.value     = config.gpgpuSdfBounce;
     simMeshRef.current.material = posSimMat;
     glCtx.setRenderTarget(posOut); glCtx.render(simScene, simCamera);
+    } // end !useWebGPU
 
     // Pass 2.5: depth compute + GPU bitonic sort
     let finalSortTex: THREE.Texture | null = null;
@@ -1448,8 +1507,20 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     glCtx.setRenderTarget(null);
     pingIsA.current = !isA;
 
+    // Sparse GPGPU + LOD: limit draw to active particle count
+    const lodCount = config.autoLod ? lodSystem.getEffectiveCount(config.gpgpuCount) : config.gpgpuCount;
+    const activeCount = Math.min(lodCount, texSize * texSize);
+    // LOD: skip expensive N-body/SPH/Boids passes when performance is low
+    if (config.autoLod && lodSystem.shouldSkipExpensive()) {
+      velSimMat.uniforms.uNBodyEnabled.value = false;
+      velSimMat.uniforms.uSphEnabled.value   = false;
+      velSimMat.uniforms.uBoidsEnabled.value = false;
+    }
+    drawGeo.setDrawRange(0, activeCount);
+    streakGeo.setDrawRange(0, activeCount * 2);
+
     // Update draw uniforms
-    drawMat.uniforms.uPosTex.value             = posOut.texture;
+    drawMat.uniforms.uPosTex.value             = useWebGPU && webgpuPosTexRef.current ? webgpuPosTexRef.current : posOut.texture;
     drawMat.uniforms.uVelTex.value             = velOut.texture;
     drawMat.uniforms.uColor.value.setStyle(config.gpgpuColor);
     drawMat.uniforms.uSize.value               = config.gpgpuSize;

@@ -4,6 +4,7 @@ export interface ParticleConfigCore {
   viewMode: 'perspective' | 'orthographic';
   cameraControlMode: CameraControlMode;
   renderQuality: RenderQuality;
+  autoLod: boolean;
   rotationSpeedX: number;
   rotationSpeedY: number;
   manualRotationX: number;
