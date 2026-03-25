@@ -374,6 +374,8 @@ export const FRAGMENT_SHADER = `
       hsv.x = fract(hsv.x + uHueShift);
       finalColor = hsv2rgb(hsv);
     }
+    // Ink mode: invert color so white particles become black on white background
+    finalColor = mix(finalColor, vec3(1.0) - finalColor, uInkMode);
 
     // SDF shape + pseudo-3D lighting
     if (uSdfEnabled > 0.5) {

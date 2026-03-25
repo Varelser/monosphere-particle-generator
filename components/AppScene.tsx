@@ -59,14 +59,16 @@ function getDefaultCameraPosition(config: ParticleConfig) {
   return new THREE.Vector3(0, 0, config.cameraDistance + 200);
 }
 
-const SceneBackgroundSync: React.FC<{ backgroundColor: ParticleConfig['backgroundColor'] }> = ({ backgroundColor }) => {
+const SceneBackgroundSync: React.FC<{ backgroundColor: ParticleConfig['backgroundColor']; hasPostProcessing: boolean }> = ({ backgroundColor, hasPostProcessing }) => {
   const { gl, scene } = useThree();
 
   React.useEffect(() => {
     const color = new THREE.Color(backgroundColor);
-    gl.setClearColor(color, 1);
     scene.background = color;
-  }, [backgroundColor, gl, scene]);
+    if (!hasPostProcessing) {
+      gl.setClearColor(color, 1);
+    }
+  }, [backgroundColor, hasPostProcessing, gl, scene]);
 
   return null;
 };
@@ -170,8 +172,7 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
         rendererRef.current = gl;
       }}
     >
-      <SceneBackgroundSync backgroundColor={config.backgroundColor} />
-      <color attach="background" args={[config.backgroundColor]} />
+      <SceneBackgroundSync backgroundColor={config.backgroundColor} hasPostProcessing={config.postBloomEnabled || config.postChromaticAberrationEnabled || config.postDofEnabled} />
       {config.depthFogEnabled && (
         <fog attach="fog" args={[config.backgroundColor, config.depthFogNear, config.depthFogFar]} />
       )}
@@ -256,7 +257,7 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
       />
       {(config.postBloomEnabled || config.postChromaticAberrationEnabled || config.postDofEnabled) && (
         <EffectComposer>
-          {config.postBloomEnabled ? (
+          {config.postBloomEnabled && (
             <Bloom
               intensity={config.postBloomIntensity}
               radius={config.postBloomRadius}
@@ -264,22 +265,22 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
               luminanceSmoothing={0.1}
               mipmapBlur
             />
-          ) : <></>}
-          {config.postChromaticAberrationEnabled ? (
+          )}
+          {config.postChromaticAberrationEnabled && (
             <ChromaticAberration
               blendFunction={BlendFunction.NORMAL}
               offset={new THREE.Vector2(config.postChromaticAberrationOffset, config.postChromaticAberrationOffset)}
               radialModulation={false}
               modulationOffset={0}
             />
-          ) : <></>}
-          {config.postDofEnabled ? (
+          )}
+          {config.postDofEnabled && (
             <DepthOfField
               focusDistance={config.postDofFocusDistance}
               focalLength={config.postDofFocalLength}
               bokehScale={config.postDofBokehScale}
             />
-          ) : <></>}
+          )}
         </EffectComposer>
       )}
     </Canvas>
