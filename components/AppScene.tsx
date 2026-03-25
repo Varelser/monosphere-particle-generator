@@ -59,16 +59,14 @@ function getDefaultCameraPosition(config: ParticleConfig) {
   return new THREE.Vector3(0, 0, config.cameraDistance + 200);
 }
 
-const SceneBackgroundSync: React.FC<{ backgroundColor: ParticleConfig['backgroundColor']; hasPostProcessing: boolean }> = ({ backgroundColor, hasPostProcessing }) => {
+const SceneBackgroundSync: React.FC<{ backgroundColor: ParticleConfig['backgroundColor'] }> = ({ backgroundColor }) => {
   const { gl, scene } = useThree();
 
   React.useEffect(() => {
     const color = new THREE.Color(backgroundColor);
+    gl.setClearColor(color, 1);
     scene.background = color;
-    if (!hasPostProcessing) {
-      gl.setClearColor(color, 1);
-    }
-  }, [backgroundColor, hasPostProcessing, gl, scene]);
+  }, [backgroundColor, gl, scene]);
 
   return null;
 };
@@ -172,7 +170,8 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
         rendererRef.current = gl;
       }}
     >
-      <SceneBackgroundSync backgroundColor={config.backgroundColor} hasPostProcessing={config.postBloomEnabled || config.postChromaticAberrationEnabled || config.postDofEnabled} />
+      <SceneBackgroundSync backgroundColor={config.backgroundColor} />
+      <color attach="background" args={[config.backgroundColor]} />
       {config.depthFogEnabled && (
         <fog attach="fog" args={[config.backgroundColor, config.depthFogNear, config.depthFogFar]} />
       )}
