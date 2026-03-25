@@ -108,6 +108,9 @@ export type WebGPUComputeState = {
   posUBuf: GPUBuffer;
   stagingBuf: GPUBuffer;
   texSize: number;
+  /** 事前確保済みuniformバッファ（毎フレームの new Float32Array を避ける） */
+  velUData: Float32Array<ArrayBuffer>;
+  posUData: Float32Array<ArrayBuffer>;
 };
 
 export async function initWebGPUCompute(
@@ -135,8 +138,8 @@ export async function initWebGPUCompute(
   const velABuf = device.createBuffer(bufOpts);
   const velBBuf = device.createBuffer(bufOpts);
 
-  device.queue.writeBuffer(posABuf, 0, initialPos);
-  device.queue.writeBuffer(velABuf, 0, initialVel);
+  device.queue.writeBuffer(posABuf, 0, initialPos.buffer as ArrayBuffer, initialPos.byteOffset, initialPos.byteLength);
+  device.queue.writeBuffer(velABuf, 0, initialVel.buffer as ArrayBuffer, initialVel.byteOffset, initialVel.byteLength);
 
   const stagingBuf = device.createBuffer({
     size: byteSize,
@@ -176,7 +179,10 @@ export async function initWebGPUCompute(
     compute: { module: posModule, entryPoint: 'main' },
   });
 
-  return { device, velPipeline, posPipeline, posABuf, posBBuf, velABuf, velBBuf, velUBuf, posUBuf, stagingBuf, texSize };
+  const velUData = new Float32Array(new ArrayBuffer(32)); // [texSize, delta, time, gravity, turbulence, bounceRadius, bounce, speed]
+  const posUData = new Float32Array(new ArrayBuffer(16)); // [texSize, delta, speed, bounceRadius]
+
+  return { device, velPipeline, posPipeline, posABuf, posBBuf, velABuf, velBBuf, velUBuf, posUBuf, stagingBuf, texSize, velUData, posUData };
 }
 
 export function stepWebGPUCompute(
@@ -198,14 +204,17 @@ export function stepWebGPUCompute(
   const velIn  = pingIsA ? velABuf : velBBuf;
   const velOut = pingIsA ? velBBuf : velABuf;
 
-  // Write vel uniforms: [texSize, delta, time, gravity, turbulence, bounceRadius, bounce, speed]
-  const velU = new Float32Array([0, delta, time, gravity, turbulence, bounceRadius, bounce, speed]);
-  const velUI = new Uint32Array(velU.buffer); velUI[0] = texSize;
+  // Write vel uniforms into pre-allocated buffer (no new Float32Array per frame)
+  const velU = state.velUData;
+  velU[1] = delta; velU[2] = time; velU[3] = gravity;
+  velU[4] = turbulence; velU[5] = bounceRadius; velU[6] = bounce; velU[7] = speed;
+  new Uint32Array(velU.buffer)[0] = texSize; // texSizeはu32なのでUint32Arrayビューで書く
   device.queue.writeBuffer(velUBuf, 0, velU);
 
-  // Write pos uniforms: [texSize, delta, speed, bounceRadius]
-  const posU = new Float32Array([0, delta, speed, bounceRadius]);
-  const posUI = new Uint32Array(posU.buffer); posUI[0] = texSize;
+  // Write pos uniforms into pre-allocated buffer
+  const posU = state.posUData;
+  posU[1] = delta; posU[2] = speed; posU[3] = bounceRadius;
+  new Uint32Array(posU.buffer)[0] = texSize;
   device.queue.writeBuffer(posUBuf, 0, posU);
 
   const enc = device.createCommandEncoder();
@@ -247,12 +256,28 @@ export function stepWebGPUCompute(
   device.queue.submit([enc.finish()]);
 }
 
-/** Async readback of position data. Returns Float32Array (RGBA per particle). */
-export async function readbackWebGPUPositions(state: WebGPUComputeState): Promise<Float32Array> {
+/** Async readback of position data. Returns Float32Array (RGBA per particle).
+ *  lastResult: 前フレームのデータ。mapAsyncがタイムアウトした場合に返すフォールバック。
+ */
+export async function readbackWebGPUPositions(
+  state: WebGPUComputeState,
+  lastResult?: Float32Array,
+): Promise<Float32Array> {
   const N = state.texSize * state.texSize;
-  await state.stagingBuf.mapAsync(GPUMapMode.READ, 0, N * 16);
-  const mapped = state.stagingBuf.getMappedRange(0, N * 16);
-  const result = new Float32Array(mapped.slice(0));
+  const TIMEOUT_MS = 100;
+
+  // Promise.race でタイムアウトを設定 —— GPUビジー時の無期限ハングを防ぐ
+  const mapPromise = state.stagingBuf.mapAsync(GPUMapMode.READ, 0, N * 16).then(() => true);
+  const timeoutPromise = new Promise<false>(resolve => setTimeout(() => resolve(false), TIMEOUT_MS));
+
+  const mapped = await Promise.race([mapPromise, timeoutPromise]);
+  if (!mapped) {
+    // タイムアウト: 前フレームデータを再利用（mapAsync は引き続きバックグラウンドで動く）
+    return lastResult ?? new Float32Array(N * 4);
+  }
+
+  const range = state.stagingBuf.getMappedRange(0, N * 16);
+  const result = new Float32Array(range.slice(0));
   state.stagingBuf.unmap();
   return result;
 }

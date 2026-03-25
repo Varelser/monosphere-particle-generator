@@ -154,7 +154,7 @@ export const GpgpuSmoothTube: React.FC<Props> = React.memo(({ config, posReadbac
       }
 
       attr.needsUpdate = true;
-      geo.computeBoundingSphere();
+      // computeBoundingSphere() removed: frustumCulled=false なので毎フレーム計算不要
     }
   });
 
