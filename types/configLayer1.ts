@@ -22,4 +22,12 @@ export interface ParticleConfigLayer1 {
   jitter: number;
   pulseSpeed: number;
   pulseAmplitude: number;
+  // Per-layer SDF
+  layer1SdfEnabled: boolean;
+  layer1SdfShape: 'sphere' | 'ring' | 'star' | 'hexagon';
+  layer1SdfLightX: number;
+  layer1SdfLightY: number;
+  layer1SdfSpecular: number;
+  layer1SdfShininess: number;
+  layer1SdfAmbient: number;
 }

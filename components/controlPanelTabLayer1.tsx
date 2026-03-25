@@ -74,5 +74,21 @@ export const Layer1TabContent: React.FC<ControlPanelContentProps> = ({ config, l
         <Slider label="Pulse Depth" value={config.pulseAmplitude} min={0} max={5000} step={1} onChange={(v) => updateConfig('pulseAmplitude', v)} />
       </div>
     )}
+    {config.layer1Enabled && (
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">L1: SDF Shape</h3>
+        <Toggle label="SDF Shape Mode" value={config.layer1SdfEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('layer1SdfEnabled', v)} />
+        {config.layer1SdfEnabled && (
+          <>
+            <Toggle label="Shape" value={config.layer1SdfShape} options={[{ label: 'Sphere', val: 'sphere' }, { label: 'Ring', val: 'ring' }, { label: 'Star', val: 'star' }, { label: 'Hex', val: 'hexagon' }]} onChange={(v) => updateConfig('layer1SdfShape', v)} />
+            <Slider label="Specular" value={config.layer1SdfSpecular} min={0} max={3} step={0.05} onChange={(v) => updateConfig('layer1SdfSpecular', v)} />
+            <Slider label="Shininess" value={config.layer1SdfShininess} min={1} max={64} step={1} onChange={(v) => updateConfig('layer1SdfShininess', v)} />
+            <Slider label="Ambient" value={config.layer1SdfAmbient} min={0} max={1} step={0.01} onChange={(v) => updateConfig('layer1SdfAmbient', v)} />
+            <Slider label="Light X" value={config.layer1SdfLightX} min={-1} max={1} step={0.01} onChange={(v) => updateConfig('layer1SdfLightX', v)} />
+            <Slider label="Light Y" value={config.layer1SdfLightY} min={-1} max={1} step={0.01} onChange={(v) => updateConfig('layer1SdfLightY', v)} />
+          </>
+        )}
+      </div>
+    )}
   </div>
 );

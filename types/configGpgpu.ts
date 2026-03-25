@@ -140,4 +140,28 @@ export interface ParticleConfigGpgpu {
   gpgpuMetaballOpacity: number;
   gpgpuMetaballWireframe: boolean;
   gpgpuMetaballParticleLimit: number;
+  // Ribbon Trail
+  gpgpuRibbonEnabled: boolean;
+  gpgpuRibbonWidth: number;
+  gpgpuRibbonTaper: number;
+  gpgpuRibbonOpacity: number;
+  gpgpuRibbonMaxSegLen: number;
+  // Tube Trail (circular cross-section)
+  gpgpuTubeEnabled: boolean;
+  gpgpuTubeRadius: number;
+  gpgpuTubeOpacity: number;
+  // Smooth Tube (CatmullRom per-particle subset)
+  gpgpuSmoothTubeEnabled: boolean;
+  gpgpuSmoothTubeCount: number;
+  gpgpuSmoothTubeRadius: number;
+  gpgpuSmoothTubeHistory: number;
+  gpgpuSmoothTubeColor: string;
+  gpgpuSmoothTubeOpacity: number;
+  // Volumetric Ray Marching
+  gpgpuVolumetricEnabled: boolean;
+  gpgpuVolumetricRadius: number;
+  gpgpuVolumetricDensity: number;
+  gpgpuVolumetricColor: string;
+  gpgpuVolumetricOpacity: number;
+  gpgpuVolumetricSteps: number;
 }

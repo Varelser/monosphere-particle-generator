@@ -11,6 +11,7 @@ import { getBurstDriveEnergy } from './sceneBurstDrive';
 import { ParticleSystem, SceneGroup, ScreenOverlay, ScreenshotManager } from './scenePrimitives';
 import { GpgpuSystem } from './sceneGpgpuSystem';
 import { MetaballSystem, getTexSizeForCount } from './sceneMetaballSystem';
+import { GpgpuSmoothTube } from './sceneGpgpuSmoothTube';
 
 extend({
   InstancedMesh: THREE.InstancedMesh,
@@ -232,6 +233,9 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
         )}
         {config.gpgpuEnabled && (
           <GpgpuSystem config={config} audioRef={audioRef} isPlaying={isPlaying} posReadbackRef={metaballPosRef} />
+        )}
+        {config.gpgpuEnabled && config.gpgpuSmoothTubeEnabled && (
+          <GpgpuSmoothTube config={config} posReadbackRef={metaballPosRef} isPlaying={isPlaying} />
         )}
         {config.gpgpuEnabled && config.gpgpuMetaballEnabled && (
           <MetaballSystem

@@ -677,6 +677,107 @@ const TRAIL_FRAG = /* glsl */ `
   }
 `;
 
+// ── Ribbon vertex (quad-strip between adjacent trail frames) ──
+const RIBBON_VERT = /* glsl */ `
+  precision highp float;
+  attribute vec2  aTexCoord;
+  attribute float aSide;
+  attribute float aIsB;
+  uniform sampler2D uPosTexA;
+  uniform sampler2D uPosTexB;
+  uniform float uWidth;
+  uniform float uMaxSegLen;
+  varying float vAlpha;
+  varying float vRibbonU;
+  varying float vRibbonV;
+  void main() {
+    vec3 posA = texture2D(uPosTexA, aTexCoord).xyz;
+    vec3 posB = texture2D(uPosTexB, aTexCoord).xyz;
+    vec3 pos  = mix(posA, posB, aIsB);
+    vRibbonV  = aIsB;
+    vRibbonU  = aSide;
+    float segLen = length(posB - posA);
+    if (segLen > uMaxSegLen) {
+      vAlpha = 0.0;
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      return;
+    }
+    vec3 dir = segLen > 0.001 ? normalize(posB - posA) : vec3(0.0, 1.0, 0.0);
+    vec3 toCamera = normalize(cameraPosition - pos);
+    vec3 right = cross(dir, toCamera);
+    float rLen = length(right);
+    right = rLen > 0.001 ? right / rLen : vec3(1.0, 0.0, 0.0);
+    pos += right * aSide * uWidth * 0.5;
+    vAlpha = 1.0;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+// ── Ribbon fragment ──
+const RIBBON_FRAG = /* glsl */ `
+  precision highp float;
+  uniform vec3  uColor;
+  uniform float uAlpha;
+  uniform float uTaper;
+  varying float vAlpha;
+  varying float vRibbonU;
+  varying float vRibbonV;
+  void main() {
+    if (vAlpha < 0.01) discard;
+    float edge    = smoothstep(1.0, 0.5, abs(vRibbonU));
+    float ageFade = mix(1.0 - uTaper, 1.0, vRibbonV);
+    gl_FragColor  = vec4(uColor, uAlpha * edge * ageFade);
+  }
+`;
+
+// ── Tube vertex (8-sided circular cross-section trail) ──
+const TUBE_SIDES = 8;
+const TUBE_VERT = /* glsl */ `
+  precision highp float;
+  attribute vec2  aTexCoord;
+  attribute float aTubeSide;
+  attribute float aIsB;
+  uniform sampler2D uPosTexA;
+  uniform sampler2D uPosTexB;
+  uniform float uTubeRadius;
+  uniform float uMaxSegLen;
+  varying float vAlpha;
+  varying float vRibbonV;
+  const float PI2 = 6.28318530718;
+  const float SIDES = ${TUBE_SIDES}.0;
+  void main() {
+    vec3 posA = texture2D(uPosTexA, aTexCoord).xyz;
+    vec3 posB = texture2D(uPosTexB, aTexCoord).xyz;
+    vec3 pos  = mix(posA, posB, aIsB);
+    vRibbonV  = aIsB;
+    float segLen = length(posB - posA);
+    if (segLen > uMaxSegLen) { vAlpha = 0.0; gl_Position = vec4(2.0,2.0,2.0,1.0); return; }
+    vec3 dir = segLen > 0.001 ? normalize(posB - posA) : vec3(0.0, 1.0, 0.0);
+    vec3 up    = abs(dir.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 right = normalize(cross(dir, up));
+    vec3 up2   = normalize(cross(right, dir));
+    float angle = PI2 * aTubeSide / SIDES;
+    pos += (right * cos(angle) + up2 * sin(angle)) * uTubeRadius;
+    vAlpha = 1.0;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+// ── Tube fragment ──
+const TUBE_FRAG = /* glsl */ `
+  precision highp float;
+  uniform vec3  uColor;
+  uniform float uAlpha;
+  uniform float uTaper;
+  varying float vAlpha;
+  varying float vRibbonV;
+  void main() {
+    if (vAlpha < 0.01) discard;
+    float ageFade = mix(1.0 - uTaper, 1.0, vRibbonV);
+    gl_FragColor  = vec4(uColor, uAlpha * ageFade);
+  }
+`;
+
 // ── Streak vertex (velocity-direction line segments) ──
 const STREAK_VERT = /* glsl */ `
   precision highp float;
@@ -718,6 +819,65 @@ const STREAK_FRAG = /* glsl */ `
       ageFade *= smoothstep(1.0, 1.0 - uAgeFadeOut, vNormAge);
     }
     gl_FragColor = vec4(uColor, uOpacity * vEndAlpha * ageFade);
+  }
+`;
+
+// ── Volumetric sphere sprite vertex ──
+const VOLUMETRIC_VERT = /* glsl */ `
+  precision highp float;
+  attribute vec2 aTexCoord;
+  uniform sampler2D uPosTex;
+  uniform float uRadius;
+  varying vec3 vWorldCenter;
+  varying vec3 vQuadPos;
+  void main() {
+    vec3 center = texture2D(uPosTex, aTexCoord).xyz;
+    vWorldCenter = center;
+    // Billboard: derive camera axes from cameraPosition
+    vec3 toCamera = normalize(cameraPosition - center);
+    vec3 up       = abs(toCamera.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 right    = normalize(cross(toCamera, up));
+    up            = normalize(cross(right, toCamera));
+    vec3 worldPos = center + (right * position.x + up * position.y) * uRadius;
+    vQuadPos      = worldPos;
+    gl_Position   = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
+  }
+`;
+
+// ── Volumetric sphere sprite fragment (ray-marched density) ──
+const VOLUMETRIC_FRAG = /* glsl */ `
+  precision highp float;
+  uniform vec3  uColor;
+  uniform float uRadius;
+  uniform float uDensity;
+  uniform float uOpacity;
+  uniform float uSteps;
+  varying vec3 vWorldCenter;
+  varying vec3 vQuadPos;
+  void main() {
+    vec3 rayDir = normalize(vQuadPos - cameraPosition);
+    vec3 oc = cameraPosition - vWorldCenter;
+    float b    = dot(oc, rayDir);
+    float c    = dot(oc, oc) - uRadius * uRadius;
+    float disc = b * b - c;
+    if (disc < 0.0) discard;
+    float sqrtD = sqrt(disc);
+    float t0 = max(-b - sqrtD, 0.0);
+    float t1 = -b + sqrtD;
+    if (t1 < 0.0) discard;
+    int nSteps   = int(uSteps);
+    float segLen = (t1 - t0) / uSteps;
+    float accumulated = 0.0;
+    for (int i = 0; i < 32; i++) {
+      if (i >= nSteps) break;
+      float t   = t0 + (float(i) + 0.5) * segLen;
+      vec3 p    = cameraPosition + rayDir * t;
+      float d   = length(p - vWorldCenter) / uRadius;
+      accumulated += exp(-d * d * 4.0) * segLen;
+    }
+    float alpha = (1.0 - exp(-accumulated * uDensity)) * uOpacity;
+    if (alpha < 0.005) discard;
+    gl_FragColor = vec4(uColor, alpha);
   }
 `;
 
@@ -1084,6 +1244,111 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
 
   const trailHead = useRef(0);
 
+  // ── Ribbon geometry (4 verts × N particles, indexed quads) ──
+  const ribbonGeo = useMemo(() => {
+    const N = texSize * texSize;
+    const geo = new THREE.BufferGeometry();
+    const texCoords = new Float32Array(N * 4 * 2);
+    const sides     = new Float32Array(N * 4);
+    const isBArr    = new Float32Array(N * 4);
+    for (let i = 0; i < N; i++) {
+      const u = ((i % texSize) + 0.5) / texSize;
+      const v = (Math.floor(i / texSize) + 0.5) / texSize;
+      const b = i * 4;
+      for (let j = 0; j < 4; j++) { texCoords[(b + j) * 2] = u; texCoords[(b + j) * 2 + 1] = v; }
+      sides[b]   = -1; sides[b+1]   = 1; sides[b+2]   = -1; sides[b+3]   = 1;
+      isBArr[b]  =  0; isBArr[b+1]  = 0; isBArr[b+2]  =  1; isBArr[b+3]  = 1;
+    }
+    const indices = new Uint32Array(N * 6);
+    for (let i = 0; i < N; i++) {
+      const b = i * 4, bi = i * 6;
+      indices[bi]   = b;   indices[bi+1] = b+2; indices[bi+2] = b+1;
+      indices[bi+3] = b+1; indices[bi+4] = b+2; indices[bi+5] = b+3;
+    }
+    geo.setAttribute('aTexCoord', new THREE.BufferAttribute(texCoords, 2));
+    geo.setAttribute('aSide',     new THREE.BufferAttribute(sides, 1));
+    geo.setAttribute('aIsB',      new THREE.BufferAttribute(isBArr, 1));
+    geo.setIndex(new THREE.BufferAttribute(indices, 1));
+    return geo;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [texSize]);
+
+  // ── Ribbon materials (one per adjacent frame pair) ──
+  const ribbonMats = useMemo(() => Array.from({ length: MAX_TRAIL - 1 }, () => new THREE.ShaderMaterial({
+    uniforms: {
+      uPosTexA:   { value: null },
+      uPosTexB:   { value: null },
+      uColor:     { value: new THREE.Color(config.gpgpuColor) },
+      uWidth:     { value: config.gpgpuRibbonWidth },
+      uAlpha:     { value: 0 },
+      uTaper:     { value: config.gpgpuRibbonTaper },
+      uMaxSegLen: { value: config.gpgpuRibbonMaxSegLen },
+    },
+    vertexShader: RIBBON_VERT, fragmentShader: RIBBON_FRAG,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), []);
+
+  // ── Tube geometry (8-sided circular cross-section) ──
+  const tubeGeo = useMemo(() => {
+    const N = texSize * texSize;
+    const geo = new THREE.BufferGeometry();
+    const vertsPerParticle = TUBE_SIDES * 2;
+    const total = N * vertsPerParticle;
+    const texCoords = new Float32Array(total * 2);
+    const tubeSidesAttr = new Float32Array(total);
+    const isBArr       = new Float32Array(total);
+    for (let i = 0; i < N; i++) {
+      const u = ((i % texSize) + 0.5) / texSize;
+      const v = (Math.floor(i / texSize) + 0.5) / texSize;
+      for (let s = 0; s < TUBE_SIDES; s++) {
+        const ia = i * vertsPerParticle + s;
+        const ib = i * vertsPerParticle + TUBE_SIDES + s;
+        texCoords[ia * 2] = u; texCoords[ia * 2 + 1] = v;
+        texCoords[ib * 2] = u; texCoords[ib * 2 + 1] = v;
+        tubeSidesAttr[ia] = s; isBArr[ia] = 0;
+        tubeSidesAttr[ib] = s; isBArr[ib] = 1;
+      }
+    }
+    const indicesPerParticle = TUBE_SIDES * 6;
+    const indices = new Uint32Array(N * indicesPerParticle);
+    for (let i = 0; i < N; i++) {
+      const base = i * vertsPerParticle;
+      const bi   = i * indicesPerParticle;
+      for (let s = 0; s < TUBE_SIDES; s++) {
+        const s1 = (s + 1) % TUBE_SIDES;
+        const ii = bi + s * 6;
+        indices[ii]   = base + s;           indices[ii+1] = base + TUBE_SIDES + s;
+        indices[ii+2] = base + s1;          indices[ii+3] = base + s1;
+        indices[ii+4] = base + TUBE_SIDES + s; indices[ii+5] = base + TUBE_SIDES + s1;
+      }
+    }
+    geo.setAttribute('aTexCoord',  new THREE.BufferAttribute(texCoords, 2));
+    geo.setAttribute('aTubeSide',  new THREE.BufferAttribute(tubeSidesAttr, 1));
+    geo.setAttribute('aIsB',       new THREE.BufferAttribute(isBArr, 1));
+    geo.setIndex(new THREE.BufferAttribute(indices, 1));
+    return geo;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [texSize]);
+
+  // ── Tube materials (one per adjacent frame pair) ──
+  const tubeMats = useMemo(() => Array.from({ length: MAX_TRAIL - 1 }, () => new THREE.ShaderMaterial({
+    uniforms: {
+      uPosTexA:    { value: null },
+      uPosTexB:    { value: null },
+      uColor:      { value: new THREE.Color(config.gpgpuColor) },
+      uTubeRadius: { value: config.gpgpuTubeRadius },
+      uAlpha:      { value: 0 },
+      uTaper:      { value: 0.8 },
+      uMaxSegLen:  { value: config.gpgpuRibbonMaxSegLen },
+    },
+    vertexShader: TUBE_VERT, fragmentShader: TUBE_FRAG,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), []);
+
   // ── Instanced geometry ──
   const instGeo = useMemo(() => {
     if (config.gpgpuGeomMode === 'point') return null;
@@ -1126,6 +1391,45 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     if (!instGeo) return null;
     return new THREE.Mesh(instGeo, geomMat);
   }, [instGeo, geomMat]);
+
+  // ── Volumetric sphere sprites ──
+  const volumetricGeo = useMemo(() => {
+    const N = texSize * texSize;
+    const geo = new THREE.InstancedBufferGeometry();
+    const base = new THREE.PlaneGeometry(2, 2);
+    if (base.index) geo.setIndex(base.index);
+    geo.setAttribute('position', base.attributes.position);
+    const coords = new Float32Array(N * 2);
+    for (let i = 0; i < N; i++) {
+      coords[i * 2]     = ((i % texSize) + 0.5) / texSize;
+      coords[i * 2 + 1] = (Math.floor(i / texSize) + 0.5) / texSize;
+    }
+    geo.setAttribute('aTexCoord', new THREE.InstancedBufferAttribute(coords, 2));
+    geo.instanceCount = N;
+    base.dispose();
+    return geo;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [texSize]);
+
+  const volumetricMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      uPosTex:  { value: null },
+      uColor:   { value: new THREE.Color(config.gpgpuVolumetricColor) },
+      uRadius:  { value: config.gpgpuVolumetricRadius },
+      uDensity: { value: config.gpgpuVolumetricDensity },
+      uOpacity: { value: config.gpgpuVolumetricOpacity },
+      uSteps:   { value: config.gpgpuVolumetricSteps },
+    },
+    vertexShader: VOLUMETRIC_VERT, fragmentShader: VOLUMETRIC_FRAG,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
+
+  const volumetricMeshObj = useMemo(() => {
+    const mesh = new THREE.Mesh(volumetricGeo, volumetricMat);
+    mesh.frustumCulled = false;
+    return mesh;
+  }, [volumetricGeo, volumetricMat]);
 
   // ── Ping-pong RTs ──
   const rtRef = useRef<{
@@ -1498,7 +1802,7 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     }
 
     // Pass 3: trail blit
-    if (config.gpgpuTrailEnabled) {
+    if (config.gpgpuTrailEnabled || config.gpgpuRibbonEnabled || config.gpgpuTubeEnabled) {
       blitMat.uniforms.uTex.value = posOut.texture;
       simMeshRef.current.material = blitMat;
       glCtx.setRenderTarget(trailRTs[trailHead.current]);
@@ -1509,7 +1813,7 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
     glCtx.setRenderTarget(null);
 
     // Metaball position readback (sync GPU→CPU, only when enabled)
-    if (posReadbackRef && config.gpgpuMetaballEnabled && !useWebGPU) {
+    if (posReadbackRef && (config.gpgpuMetaballEnabled || config.gpgpuSmoothTubeEnabled) && !useWebGPU) {
       const N = texSize * texSize;
       if (!posReadbackRef.current || posReadbackRef.current.length !== N * 4) {
         (posReadbackRef as React.MutableRefObject<Float32Array | null>).current = new Float32Array(N * 4);
@@ -1585,6 +1889,43 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       }
     }
 
+    // Update ribbon uniforms
+    if (config.gpgpuRibbonEnabled) {
+      const tLen = Math.min(MAX_TRAIL - 1, Math.max(2, config.gpgpuTrailLength));
+      for (let i = 0; i < MAX_TRAIL - 1; i++) {
+        const rtIdxB = ((trailHead.current - 1 - i) + MAX_TRAIL * 2) % MAX_TRAIL;
+        const rtIdxA = ((trailHead.current - 2 - i) + MAX_TRAIL * 2) % MAX_TRAIL;
+        const alpha  = i < tLen - 1
+          ? Math.pow(config.gpgpuTrailFade, i + 1) * config.gpgpuRibbonOpacity
+          : 0;
+        ribbonMats[i].uniforms.uPosTexA.value   = trailRTs[rtIdxA].texture;
+        ribbonMats[i].uniforms.uPosTexB.value   = trailRTs[rtIdxB].texture;
+        ribbonMats[i].uniforms.uColor.value.setStyle(config.gpgpuColor);
+        ribbonMats[i].uniforms.uWidth.value     = config.gpgpuRibbonWidth;
+        ribbonMats[i].uniforms.uAlpha.value     = alpha;
+        ribbonMats[i].uniforms.uTaper.value     = config.gpgpuRibbonTaper;
+        ribbonMats[i].uniforms.uMaxSegLen.value = config.gpgpuRibbonMaxSegLen;
+      }
+    }
+
+    // Update tube uniforms
+    if (config.gpgpuTubeEnabled) {
+      const tLen = Math.min(MAX_TRAIL - 1, Math.max(2, config.gpgpuTrailLength));
+      for (let i = 0; i < MAX_TRAIL - 1; i++) {
+        const rtIdxB = ((trailHead.current - 1 - i) + MAX_TRAIL * 2) % MAX_TRAIL;
+        const rtIdxA = ((trailHead.current - 2 - i) + MAX_TRAIL * 2) % MAX_TRAIL;
+        const alpha  = i < tLen - 1
+          ? Math.pow(config.gpgpuTrailFade, i + 1) * config.gpgpuTubeOpacity
+          : 0;
+        tubeMats[i].uniforms.uPosTexA.value    = trailRTs[rtIdxA].texture;
+        tubeMats[i].uniforms.uPosTexB.value    = trailRTs[rtIdxB].texture;
+        tubeMats[i].uniforms.uColor.value.setStyle(config.gpgpuColor);
+        tubeMats[i].uniforms.uTubeRadius.value = config.gpgpuTubeRadius;
+        tubeMats[i].uniforms.uAlpha.value      = alpha;
+        tubeMats[i].uniforms.uMaxSegLen.value  = config.gpgpuRibbonMaxSegLen;
+      }
+    }
+
     // Update geom uniforms
     if (config.gpgpuGeomMode !== 'point') {
       geomMat.uniforms.uPosTex.value        = posOut.texture;
@@ -1593,6 +1934,17 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       geomMat.uniforms.uOpacity.value       = config.gpgpuOpacity;
       geomMat.uniforms.uGeomScale.value     = config.gpgpuBounceRadius * 0.02 * config.gpgpuGeomScale;
       geomMat.uniforms.uVelocityAlign.value = config.gpgpuGeomVelocityAlign ? 1 : 0;
+    }
+
+    // Update volumetric uniforms
+    if (config.gpgpuVolumetricEnabled) {
+      volumetricGeo.instanceCount = activeCount;
+      volumetricMat.uniforms.uPosTex.value  = posOut.texture;
+      volumetricMat.uniforms.uColor.value.setStyle(config.gpgpuVolumetricColor);
+      volumetricMat.uniforms.uRadius.value  = config.gpgpuVolumetricRadius;
+      volumetricMat.uniforms.uDensity.value = config.gpgpuVolumetricDensity;
+      volumetricMat.uniforms.uOpacity.value = config.gpgpuVolumetricOpacity;
+      volumetricMat.uniforms.uSteps.value   = config.gpgpuVolumetricSteps;
     }
   });
 
@@ -1607,8 +1959,17 @@ export const GpgpuSystem: React.FC<GpgpuSystemProps> = React.memo(({ audioRef, c
       {config.gpgpuTrailEnabled && trailMats.map((mat, i) => (
         <points key={i} geometry={drawGeo} material={mat} />
       ))}
+      {config.gpgpuRibbonEnabled && ribbonMats.map((mat, i) => (
+        <mesh key={i} geometry={ribbonGeo} material={mat} />
+      ))}
+      {config.gpgpuTubeEnabled && tubeMats.map((mat, i) => (
+        <mesh key={i} geometry={tubeGeo} material={mat} />
+      ))}
       {config.gpgpuStreakEnabled && (
         <lineSegments geometry={streakGeo} material={streakMat} />
+      )}
+      {config.gpgpuVolumetricEnabled && (
+        <primitive object={volumetricMeshObj} />
       )}
     </>
   );

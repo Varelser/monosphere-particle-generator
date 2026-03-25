@@ -99,4 +99,17 @@ export interface ParticleConfigLayer2 {
   layer2SparkBurst: number;
   layer2GeomMode3D: 'billboard' | 'cube' | 'tetra';
   layer2GeomScale3D: number;
+  // Ghost Trail (time-offset copies)
+  layer2GhostTrailEnabled: boolean;
+  layer2GhostTrailCount: number;
+  layer2GhostTrailDt: number;
+  layer2GhostTrailFade: number;
+  // Per-layer SDF
+  layer2SdfEnabled: boolean;
+  layer2SdfShape: 'sphere' | 'ring' | 'star' | 'hexagon';
+  layer2SdfLightX: number;
+  layer2SdfLightY: number;
+  layer2SdfSpecular: number;
+  layer2SdfShininess: number;
+  layer2SdfAmbient: number;
 }

@@ -124,6 +124,13 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   jitter: 0.0,
   pulseSpeed: 0.003,
   pulseAmplitude: 0.5,
+  layer1SdfEnabled: false,
+  layer1SdfShape: 'sphere' as const,
+  layer1SdfLightX: 0.5,
+  layer1SdfLightY: 0.7,
+  layer1SdfSpecular: 0.8,
+  layer1SdfShininess: 16.0,
+  layer1SdfAmbient: 0.3,
 
   // Layer 2
   layer2Enabled: false,
@@ -216,6 +223,17 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   layer2SparkBurst: 0.9,
   layer2GeomMode3D: 'billboard' as const,
   layer2GeomScale3D: 1.0,
+  layer2GhostTrailEnabled: false,
+  layer2GhostTrailCount: 4,
+  layer2GhostTrailDt: 0.12,
+  layer2GhostTrailFade: 0.6,
+  layer2SdfEnabled: false,
+  layer2SdfShape: 'sphere' as const,
+  layer2SdfLightX: 0.5,
+  layer2SdfLightY: 0.7,
+  layer2SdfSpecular: 0.8,
+  layer2SdfShininess: 16.0,
+  layer2SdfAmbient: 0.3,
 
   // Layer 3
   layer3Enabled: false,
@@ -308,6 +326,17 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   layer3SparkBurst: 1.05,
   layer3GeomMode3D: 'billboard' as const,
   layer3GeomScale3D: 1.0,
+  layer3GhostTrailEnabled: false,
+  layer3GhostTrailCount: 4,
+  layer3GhostTrailDt: 0.12,
+  layer3GhostTrailFade: 0.6,
+  layer3SdfEnabled: false,
+  layer3SdfShape: 'sphere' as const,
+  layer3SdfLightX: 0.5,
+  layer3SdfLightY: 0.7,
+  layer3SdfSpecular: 0.8,
+  layer3SdfShininess: 16.0,
+  layer3SdfAmbient: 0.3,
 
   // GPGPU Layer
   gpgpuEnabled: false,
@@ -443,6 +472,30 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuMetaballOpacity: 0.75,
   gpgpuMetaballWireframe: false,
   gpgpuMetaballParticleLimit: 1024,
+  // Ribbon Trail
+  gpgpuRibbonEnabled: false,
+  gpgpuRibbonWidth: 4.0,
+  gpgpuRibbonTaper: 0.8,
+  gpgpuRibbonOpacity: 0.5,
+  gpgpuRibbonMaxSegLen: 80.0,
+  // Tube Trail
+  gpgpuTubeEnabled: false,
+  gpgpuTubeRadius: 3.0,
+  gpgpuTubeOpacity: 0.6,
+  // Smooth Tube
+  gpgpuSmoothTubeEnabled: false,
+  gpgpuSmoothTubeCount: 32,
+  gpgpuSmoothTubeRadius: 2.0,
+  gpgpuSmoothTubeHistory: 12,
+  gpgpuSmoothTubeColor: '#aaccff',
+  gpgpuSmoothTubeOpacity: 0.7,
+  // Volumetric Ray Marching
+  gpgpuVolumetricEnabled: false,
+  gpgpuVolumetricRadius: 12.0,
+  gpgpuVolumetricDensity: 2.0,
+  gpgpuVolumetricColor: '#aaccff',
+  gpgpuVolumetricOpacity: 0.8,
+  gpgpuVolumetricSteps: 8,
 
   // SDF Particle Shape & Pseudo-3D Lighting
   sdfShapeEnabled: false,

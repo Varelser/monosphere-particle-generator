@@ -281,6 +281,31 @@ export const Layer2TabContent: React.FC<ControlPanelContentProps> = ({ config, l
             </>
           )}
         </div>
+        <div className="pt-4 border-t border-white/10">
+          <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">L2: Ghost Trail</h3>
+          <Toggle label="Ghost Trail" value={config.layer2GhostTrailEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('layer2GhostTrailEnabled', v)} />
+          {config.layer2GhostTrailEnabled && (
+            <>
+              <Slider label="Ghost Count" value={config.layer2GhostTrailCount} min={1} max={8} step={1} onChange={(v) => updateConfig('layer2GhostTrailCount', Math.round(v))} />
+              <Slider label="Time Step (s)" value={config.layer2GhostTrailDt} min={0.01} max={0.5} step={0.01} onChange={(v) => updateConfig('layer2GhostTrailDt', v)} />
+              <Slider label="Fade" value={config.layer2GhostTrailFade} min={0.1} max={0.95} step={0.01} onChange={(v) => updateConfig('layer2GhostTrailFade', v)} />
+            </>
+          )}
+        </div>
+        <div className="pt-4 border-t border-white/10">
+          <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">L2: SDF Shape</h3>
+          <Toggle label="SDF Shape Mode" value={config.layer2SdfEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('layer2SdfEnabled', v)} />
+          {config.layer2SdfEnabled && (
+            <>
+              <Toggle label="Shape" value={config.layer2SdfShape} options={[{ label: 'Sphere', val: 'sphere' }, { label: 'Ring', val: 'ring' }, { label: 'Star', val: 'star' }, { label: 'Hex', val: 'hexagon' }]} onChange={(v) => updateConfig('layer2SdfShape', v)} />
+              <Slider label="Specular" value={config.layer2SdfSpecular} min={0} max={3} step={0.05} onChange={(v) => updateConfig('layer2SdfSpecular', v)} />
+              <Slider label="Shininess" value={config.layer2SdfShininess} min={1} max={64} step={1} onChange={(v) => updateConfig('layer2SdfShininess', v)} />
+              <Slider label="Ambient" value={config.layer2SdfAmbient} min={0} max={1} step={0.01} onChange={(v) => updateConfig('layer2SdfAmbient', v)} />
+              <Slider label="Light X" value={config.layer2SdfLightX} min={-1} max={1} step={0.01} onChange={(v) => updateConfig('layer2SdfLightX', v)} />
+              <Slider label="Light Y" value={config.layer2SdfLightY} min={-1} max={1} step={0.01} onChange={(v) => updateConfig('layer2SdfLightY', v)} />
+            </>
+          )}
+        </div>
       </>
     )}
   </div>

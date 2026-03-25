@@ -370,6 +370,34 @@ export const ParticleSystem: React.FC<{
     uInstanced3DScale: { value: 1.0 },
   }), [config.opacity, config.contrast, config.particleSoftness, config.particleGlow, isAux]);
 
+  // ── Ghost trail materials (L2/L3 non-aux only) ──
+  const MAX_GHOST = 8;
+  const ghostMats = useMemo(() => {
+    if ((layerIndex !== 2 && layerIndex !== 3) || isAux) return [] as THREE.ShaderMaterial[];
+    return Array.from({ length: MAX_GHOST }, () => {
+      const cloned: Record<string, { value: unknown }> = {};
+      for (const [k, u] of Object.entries(uniforms)) {
+        const v = u.value;
+        if (v instanceof THREE.Color)        cloned[k] = { value: v.clone() };
+        else if (v instanceof THREE.Vector2) cloned[k] = { value: v.clone() };
+        else if (v instanceof THREE.Vector3) cloned[k] = { value: v.clone() };
+        else if (v instanceof THREE.Vector4) cloned[k] = { value: v.clone() };
+        else if (Array.isArray(v))           cloned[k] = { value: (v as { clone?: () => unknown }[]).map(x => x?.clone?.() ?? x) };
+        else cloned[k] = { value: v };
+      }
+      return new THREE.ShaderMaterial({
+        vertexShader: PARTICLE_VERTEX_SHADER,
+        fragmentShader: FRAGMENT_SHADER,
+        uniforms: cloned,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        blending: getParticleBlendMode(config.backgroundColor),
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layerIndex, isAux]);
+
   useFrame((state, delta) => {
     if (!meshRef.current) return;
     const mat = meshRef.current.material as THREE.ShaderMaterial;
@@ -648,19 +676,71 @@ export const ParticleSystem: React.FC<{
     mat.uniforms.uInterLayerStrength.value = config.interLayerCollisionStrength * collisionAudioBoost;
     mat.uniforms.uInterLayerPadding.value = config.interLayerCollisionPadding;
 
-    // SDF shape + lighting uniforms
-    mat.uniforms.uSdfEnabled.value = config.sdfShapeEnabled ? 1 : 0;
-    mat.uniforms.uSdfShape.value = config.sdfShape === 'ring' ? 1 : config.sdfShape === 'star' ? 2 : config.sdfShape === 'hexagon' ? 3 : 0;
-    mat.uniforms.uSdfLight.value.set(config.sdfLightX, config.sdfLightY);
-    mat.uniforms.uSdfSpecular.value = config.sdfSpecularIntensity;
-    mat.uniforms.uSdfShininess.value = config.sdfSpecularShininess;
-    mat.uniforms.uSdfAmbient.value = config.sdfAmbientLight;
+    // SDF shape + lighting uniforms (per-layer, fallback to global)
+    const sdfOn    = layerIndex === 1 ? config.layer1SdfEnabled
+                   : layerIndex === 2 ? config.layer2SdfEnabled
+                   : layerIndex === 3 ? config.layer3SdfEnabled
+                   : config.sdfShapeEnabled;
+    const sdfShape = layerIndex === 1 ? config.layer1SdfShape
+                   : layerIndex === 2 ? config.layer2SdfShape
+                   : layerIndex === 3 ? config.layer3SdfShape
+                   : config.sdfShape;
+    const sdfLX    = layerIndex === 1 ? config.layer1SdfLightX
+                   : layerIndex === 2 ? config.layer2SdfLightX
+                   : layerIndex === 3 ? config.layer3SdfLightX
+                   : config.sdfLightX;
+    const sdfLY    = layerIndex === 1 ? config.layer1SdfLightY
+                   : layerIndex === 2 ? config.layer2SdfLightY
+                   : layerIndex === 3 ? config.layer3SdfLightY
+                   : config.sdfLightY;
+    const sdfSpec  = layerIndex === 1 ? config.layer1SdfSpecular
+                   : layerIndex === 2 ? config.layer2SdfSpecular
+                   : layerIndex === 3 ? config.layer3SdfSpecular
+                   : config.sdfSpecularIntensity;
+    const sdfShin  = layerIndex === 1 ? config.layer1SdfShininess
+                   : layerIndex === 2 ? config.layer2SdfShininess
+                   : layerIndex === 3 ? config.layer3SdfShininess
+                   : config.sdfSpecularShininess;
+    const sdfAmb   = layerIndex === 1 ? config.layer1SdfAmbient
+                   : layerIndex === 2 ? config.layer2SdfAmbient
+                   : layerIndex === 3 ? config.layer3SdfAmbient
+                   : config.sdfAmbientLight;
+    mat.uniforms.uSdfEnabled.value = sdfOn ? 1 : 0;
+    mat.uniforms.uSdfShape.value   = sdfShape === 'ring' ? 1 : sdfShape === 'star' ? 2 : sdfShape === 'hexagon' ? 3 : 0;
+    mat.uniforms.uSdfLight.value.set(sdfLX, sdfLY);
+    mat.uniforms.uSdfSpecular.value  = sdfSpec;
+    mat.uniforms.uSdfShininess.value = sdfShin;
+    mat.uniforms.uSdfAmbient.value   = sdfAmb;
 
     // Instanced 3D geometry uniforms
     const geomMode3D = layerIndex === 2 ? config.layer2GeomMode3D : layerIndex === 3 ? config.layer3GeomMode3D : 'billboard';
     const geomScale3D = layerIndex === 2 ? config.layer2GeomScale3D : layerIndex === 3 ? config.layer3GeomScale3D : 1.0;
     mat.uniforms.uInstanced3D.value = geomMode3D !== 'billboard' ? 1 : 0;
     mat.uniforms.uInstanced3DScale.value = geomScale3D;
+
+    // Ghost trail uniform sync (L2/L3)
+    if (!isAux && ghostMats.length > 0) {
+      const ghostEnabled = layerIndex === 2 ? config.layer2GhostTrailEnabled : config.layer3GhostTrailEnabled;
+      const ghostCount   = layerIndex === 2 ? config.layer2GhostTrailCount   : config.layer3GhostTrailCount;
+      const ghostDt      = layerIndex === 2 ? config.layer2GhostTrailDt      : config.layer3GhostTrailDt;
+      const ghostFade    = layerIndex === 2 ? config.layer2GhostTrailFade    : config.layer3GhostTrailFade;
+      const mainTime     = mat.uniforms.uTime.value;
+      const mainOpacity  = mat.uniforms.uOpacity.value;
+      for (let i = 0; i < MAX_GHOST; i++) {
+        const gm = ghostMats[i];
+        if (ghostEnabled && i < ghostCount) {
+          gm.uniforms.uAudioBass.value         = mat.uniforms.uAudioBass.value;
+          gm.uniforms.uAudioTreble.value       = mat.uniforms.uAudioTreble.value;
+          gm.uniforms.uAudioPulse.value        = mat.uniforms.uAudioPulse.value;
+          gm.uniforms.uAudioBassMotion.value   = mat.uniforms.uAudioBassMotion.value;
+          gm.uniforms.uAudioTrebleMotion.value = mat.uniforms.uAudioTrebleMotion.value;
+          gm.uniforms.uTime.value    = mainTime - (i + 1) * ghostDt;
+          gm.uniforms.uOpacity.value = mainOpacity * Math.pow(ghostFade, i + 1);
+        } else {
+          gm.uniforms.uOpacity.value = 0;
+        }
+      }
+    }
   });
 
   if (!data) return null;
@@ -712,6 +792,18 @@ export const ParticleSystem: React.FC<{
         />
       </instancedMesh>
       {showLines && <LineSystem config={config} layerIndex={layerIndex as 2 | 3} particleData={data} uniforms={uniforms} globalRadius={lineRadius} connectionDistance={connDist} connectionOpacity={connOp} contactAmount={contactAmount} isPlaying={isPlaying} />}
+      {ghostMats.map((gmat, i) => (
+        <instancedMesh key={`ghost-${i}-${geometryKey}`} args={[undefined, undefined, data.count]}>
+          <planeGeometry args={[1, 1]}>
+            <instancedBufferAttribute attach="attributes-aPosition" args={[data.pos, 3]} />
+            <instancedBufferAttribute attach="attributes-aOffset"   args={[data.off, 3]} />
+            <instancedBufferAttribute attach="attributes-aData1"    args={[data.d1,  4]} />
+            <instancedBufferAttribute attach="attributes-aData2"    args={[data.d2,  4]} />
+            <instancedBufferAttribute attach="attributes-aData3"    args={[data.d3,  4]} />
+          </planeGeometry>
+          <primitive object={gmat} attach="material" />
+        </instancedMesh>
+      ))}
     </group>
   );
 });

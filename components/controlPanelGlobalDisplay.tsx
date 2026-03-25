@@ -540,6 +540,40 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
               )}
             </div>
 
+            {/* Tube Trail (circular cross-section) */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Tube Trail (Circular)" value={config.gpgpuTubeEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuTubeEnabled', v)} />
+              {config.gpgpuTubeEnabled && (
+                <>
+                  <div className="mt-1 mb-2 text-[9px] text-white/40 leading-relaxed">
+                    8-sided circular cross-section tube trail. Uses Trail Length &amp; Fade from the Trail section.
+                  </div>
+                  <Slider label="Tube Radius" value={config.gpgpuTubeRadius} min={0.5} max={20} step={0.5} onChange={(v) => updateConfig('gpgpuTubeRadius', v)} />
+                  <Slider label="Opacity" value={config.gpgpuTubeOpacity} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuTubeOpacity', v)} />
+                </>
+              )}
+            </div>
+
+            {/* Smooth Tube (CatmullRom per-particle) */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Smooth Tube Trail" value={config.gpgpuSmoothTubeEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuSmoothTubeEnabled', v)} />
+              {config.gpgpuSmoothTubeEnabled && (
+                <>
+                  <div className="mt-1 mb-2 text-[9px] text-white/40 leading-relaxed">
+                    Smooth 3D tube trail for a subset of GPGPU particles via CPU position history.
+                  </div>
+                  <Slider label="Particle Count" value={config.gpgpuSmoothTubeCount} min={4} max={128} step={4} onChange={(v) => updateConfig('gpgpuSmoothTubeCount', Math.round(v))} />
+                  <Slider label="History Frames" value={config.gpgpuSmoothTubeHistory} min={4} max={32} step={2} onChange={(v) => updateConfig('gpgpuSmoothTubeHistory', Math.round(v))} />
+                  <Slider label="Tube Radius" value={config.gpgpuSmoothTubeRadius} min={0.5} max={15} step={0.5} onChange={(v) => updateConfig('gpgpuSmoothTubeRadius', v)} />
+                  <Slider label="Opacity" value={config.gpgpuSmoothTubeOpacity} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuSmoothTubeOpacity', v)} />
+                  <div className="mt-2 flex items-center gap-3">
+                    <label className="text-[10px] text-white/60 uppercase tracking-wider">Color</label>
+                    <input type="color" value={config.gpgpuSmoothTubeColor} onChange={(e) => updateConfig('gpgpuSmoothTubeColor', e.target.value)} className="w-8 h-6 rounded border border-white/20 bg-transparent cursor-pointer" />
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Metaballs (Marching Cubes isosurface) */}
             <div className="mt-4 border-t border-white/10 pt-4">
               <Toggle label="Metaballs (MC Surface)" value={config.gpgpuMetaballEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuMetaballEnabled', v)} />
@@ -565,6 +599,47 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
                   <div className="mt-2">
                     <Toggle label="Wireframe" value={config.gpgpuMetaballWireframe} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuMetaballWireframe', v)} />
                   </div>
+                </>
+              )}
+            </div>
+
+            {/* Volumetric Ray Marching */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Volumetric (Ray March)" value={config.gpgpuVolumetricEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuVolumetricEnabled', v)} />
+              {config.gpgpuVolumetricEnabled && (
+                <>
+                  <div className="mt-1 mb-2 text-[9px] text-white/40 leading-relaxed">
+                    Ray-marched sphere sprites — each particle rendered as a volumetric density cloud.
+                  </div>
+                  <Slider label="Radius" value={config.gpgpuVolumetricRadius} min={1} max={60} step={0.5} onChange={(v) => updateConfig('gpgpuVolumetricRadius', v)} />
+                  <Slider label="Density" value={config.gpgpuVolumetricDensity} min={0.1} max={10} step={0.1} onChange={(v) => updateConfig('gpgpuVolumetricDensity', v)} />
+                  <Slider label="Opacity" value={config.gpgpuVolumetricOpacity} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuVolumetricOpacity', v)} />
+                  <Slider label="Steps (quality)" value={config.gpgpuVolumetricSteps} min={4} max={32} step={2} onChange={(v) => updateConfig('gpgpuVolumetricSteps', Math.round(v))} />
+                  <div className="mt-2 flex items-center gap-3">
+                    <label className="text-[10px] text-white/60 uppercase tracking-wider">Color</label>
+                    <input
+                      type="color"
+                      value={config.gpgpuVolumetricColor}
+                      onChange={(e) => updateConfig('gpgpuVolumetricColor', e.target.value)}
+                      className="w-8 h-6 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Ribbon Trail */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <Toggle label="Ribbon Trail" value={config.gpgpuRibbonEnabled} options={[{ label: 'On', val: true }, { label: 'Off', val: false }]} onChange={(v) => updateConfig('gpgpuRibbonEnabled', v)} />
+              {config.gpgpuRibbonEnabled && (
+                <>
+                  <div className="mt-1 mb-2 text-[9px] text-white/40 leading-relaxed">
+                    Quad-strip ribbons between trail frames — smooth silhouette trails instead of point clouds. Uses Trail Length &amp; Fade from the Trail section.
+                  </div>
+                  <Slider label="Width" value={config.gpgpuRibbonWidth} min={0.5} max={30} step={0.5} onChange={(v) => updateConfig('gpgpuRibbonWidth', v)} />
+                  <Slider label="Opacity" value={config.gpgpuRibbonOpacity} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuRibbonOpacity', v)} />
+                  <Slider label="Taper" value={config.gpgpuRibbonTaper} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuRibbonTaper', v)} />
+                  <Slider label="Max Seg Len" value={config.gpgpuRibbonMaxSegLen} min={10} max={300} step={5} onChange={(v) => updateConfig('gpgpuRibbonMaxSegLen', v)} />
                 </>
               )}
             </div>
