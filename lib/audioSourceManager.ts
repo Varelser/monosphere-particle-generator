@@ -20,7 +20,10 @@ export function stopAudioResources(
   refs.sharedAudioStreamRef.current = null;
 
   if (refs.audioContextRef.current) {
-    void refs.audioContextRef.current.close();
+    // 既に closed/closing 状態なら再呼び出し不要（冪等性の保証）
+    if (refs.audioContextRef.current.state !== 'closed') {
+      void refs.audioContextRef.current.close();
+    }
     refs.audioContextRef.current = null;
   }
 

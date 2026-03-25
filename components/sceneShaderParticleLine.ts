@@ -2,6 +2,11 @@ import { PHYSICS_LOGIC } from './scenePhysicsLogic';
 
 export const LINE_VERTEX_SHADER = `
   precision highp float;
+  // モーションタイプ関連定数
+  #define MOTION_TYPE_COUNT 90.0  // 実装されているモーションタイプの総数
+  #define VARIANT_OFFSET    17.0  // バリアントほまったオフセット（モーフ時に璴歰を防ぐ）
+  #define VARIANT_SCALE     11.0  // バリアントからモーションオフセットへの変換係数
+  #define LIFE_TIME_SCALE   60.0  // ライフ進行計算用のフレームスケール
   ${PHYSICS_LOGIC}
   uniform float uTime;
   uniform float uGlobalSpeed; uniform float uGlobalAmp; uniform float uGlobalNoiseScale;
@@ -90,7 +95,7 @@ export const LINE_VERTEX_SHADER = `
       uInterLayerPadding
     );
     if (uAudioMorph > 0.001) {
-      float altMotionType = mod(aMotionType + 17.0 + floor(aVariant * 11.0), 90.0);
+      float altMotionType = mod(aMotionType + VARIANT_OFFSET + floor(aVariant * VARIANT_SCALE), MOTION_TYPE_COUNT);
       vec3 morphResult = calculateLayerPosition(
         p, off, altMotionType, uTime * (1.02 + aVariant * 0.12),
         speed, amp, freq * (1.0 + aVariant * 0.15), radius,
@@ -130,8 +135,8 @@ export const LINE_VERTEX_SHADER = `
     if (uLife > 0.0) {
       float lifeA = max(4.0, uLife * mix(1.0 - uLifeSpread, 1.0 + uLifeSpread, aData3A.y));
       float lifeB = max(4.0, uLife * mix(1.0 - uLifeSpread, 1.0 + uLifeSpread, aData3B.y));
-      float lifeProgressA = fract((uTime * 60.0) / lifeA + aData3A.x + uBurstPhase);
-      float lifeProgressB = fract((uTime * 60.0) / lifeB + aData3B.x + uBurstPhase);
+      float lifeProgressA = fract((uTime * LIFE_TIME_SCALE) / lifeA + aData3A.x + uBurstPhase);
+      float lifeProgressB = fract((uTime * LIFE_TIME_SCALE) / lifeB + aData3B.x + uBurstPhase);
       vBurst = max(getBurstEnvelope(lifeProgressA), getBurstEnvelope(lifeProgressB)) * clamp(uBurst, 0.0, 2.0);
     }
     float audioLineBoost = 1.0 + uAudioBassLine * 0.95 + uAudioTrebleLine * 0.45 + uAudioPulse * 1.05;

@@ -2,6 +2,11 @@ import { PHYSICS_LOGIC } from './scenePhysicsLogic';
 
 export const PARTICLE_VERTEX_SHADER = `
   precision highp float;
+  // モーションタイプ関連定数
+  #define MOTION_TYPE_COUNT 90.0  // 実装されているモーションタイプの総数
+  #define VARIANT_OFFSET    17.0  // バリアントほまったオフセット（モーフ時に璴歰を防ぐ）
+  #define VARIANT_SCALE     11.0  // バリアントからモーションオフセットへの変換係数
+  #define LIFE_TIME_SCALE   60.0  // 番小数（2Dライフ進行計算用のフレームスケール）
   ${PHYSICS_LOGIC}
   uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha; uniform float uAudioPulse; uniform float uAudioMorph; uniform float uAudioShatter; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
   uniform float uGlobalSpeed; uniform float uGlobalAmp; uniform float uGlobalNoiseScale;
@@ -102,7 +107,7 @@ export const PARTICLE_VERTEX_SHADER = `
     }
 
     if (uAudioMorph > 0.001) {
-      float altMotionType = mod(aMotionType + 17.0 + floor(aVariant * 11.0), 90.0);
+      float altMotionType = mod(aMotionType + VARIANT_OFFSET + floor(aVariant * VARIANT_SCALE), MOTION_TYPE_COUNT);
       vec3 morphPos = calculateLayerPosition(
         aPosition, animatedOffset, altMotionType, uTime * (1.02 + aVariant * 0.12),
         speed, amp, freq * (1.0 + aVariant * 0.15), radius,
@@ -154,7 +159,7 @@ export const PARTICLE_VERTEX_SHADER = `
     float lifeProgress = 0.0;
     if (uLife > 0.0) {
       float particleLife = max(4.0, uLife * mix(1.0 - uLifeSpread, 1.0 + uLifeSpread, aLifeJitter));
-      lifeProgress = fract((uTime * 60.0) / particleLife + aSpawnOffset + uBurstPhase);
+      lifeProgress = fract((uTime * LIFE_TIME_SCALE) / particleLife + aSpawnOffset + uBurstPhase);
       float burstEnvelope = 1.0 - smoothstep(0.0, 0.32, lifeProgress);
       float burstTailStart = mix(0.92, 0.36, clamp(uBurst, 0.0, 1.0));
       lifeAlpha = smoothstep(0.0, 0.08, lifeProgress) * (1.0 - smoothstep(burstTailStart, 1.0, lifeProgress));
@@ -233,7 +238,7 @@ export const PARTICLE_VERTEX_SHADER = `
     }
     pSize *= lifeSizeScale;
     if (uIsAux > 0.5) {
-      float auxLifeProgress = fract((uTime * 60.0) / max(1.0, uAuxLife) + aRandom);
+      float auxLifeProgress = fract((uTime * LIFE_TIME_SCALE) / max(1.0, uAuxLife) + aRandom);
       float auxLifeAlpha = smoothstep(0.0, 0.12, auxLifeProgress) * (1.0 - smoothstep(0.65, 1.0, auxLifeProgress));
       lifeAlpha *= auxLifeAlpha;
       pSize *= mix(0.65, 1.35, auxLifeAlpha);

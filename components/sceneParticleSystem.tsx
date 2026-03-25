@@ -230,6 +230,8 @@ export const ParticleSystem: React.FC<{
   const windRef = useRef(new THREE.Vector3());
   const spinRef = useRef(new THREE.Vector3());
   const prevAudioEnabledRef = useRef<boolean>(config.audioEnabled);
+  // Fix B: layerParamsのキャッシュ —— config変化時のみ再計算する
+  const prevLayerKeyRef = useRef<string>('');
 
   const interLayerColliders = useMemo(() => {
     if (layerIndex === 4 || isAux) {
@@ -596,67 +598,74 @@ export const ParticleSystem: React.FC<{
       rad = config.ambientSpread;
     }
 
-    // Apply layer params to uniforms
-    mat.uniforms.uGlobalSpeed.value = speed;
-    mat.uniforms.uGlobalAmp.value = amp;
-    mat.uniforms.uGlobalFreq.value = freq;
-    mat.uniforms.uGlobalNoiseScale.value = noise;
-    mat.uniforms.uGlobalComplexity.value = complexity;
-    mat.uniforms.uGlobalEvolution.value = evol;
-    mat.uniforms.uGlobalFidelity.value = fid;
-    mat.uniforms.uGlobalOctaveMult.value = oct;
-    mat.uniforms.uGlobalRadius.value = rad;
+    // Apply layer params to uniforms — config変化時のみ更新（Fix B）
+    // 単純な値の組み合わせでキーを作り、変化検出する
+    const layerKey = `${speed},${amp},${freq},${noise},${complexity},${evol},${fid},${oct},${rad},${size},${grav},${vis},${fluid},${affectPos},${resistance},${moveWithWind},${neighborForce},${collisionMode},${collisionRadius},${repulsion},${trail},${life},${lifeSpread},${lifeSizeBoost},${lifeSizeTaper},${burst},${burstPhase},${burstMode},${burstWaveform},${burstSweepSpeed},${burstSweepTilt},${burstConeWidth},${emitterOrbitSpeed},${emitterOrbitRadius},${emitterPulseAmount},${trailDrag},${trailTurbulence},${trailDrift},${velocityGlow},${velocityAlpha},${flickerAmount},${flickerSpeed},${streak},${spriteMode},${auxLife},${mouseForce},${mouseRadius},${wind.x},${wind.y},${wind.z},${spin.x},${spin.y},${spin.z},${boundaryY},${boundaryEnabled},${boundaryBounce}`;
+    const layerParamsChanged = layerKey !== prevLayerKeyRef.current;
+    if (layerParamsChanged) {
+      prevLayerKeyRef.current = layerKey;
+      mat.uniforms.uGlobalSpeed.value = speed;
+      mat.uniforms.uGlobalAmp.value = amp;
+      mat.uniforms.uGlobalFreq.value = freq;
+      mat.uniforms.uGlobalNoiseScale.value = noise;
+      mat.uniforms.uGlobalComplexity.value = complexity;
+      mat.uniforms.uGlobalEvolution.value = evol;
+      mat.uniforms.uGlobalFidelity.value = fid;
+      mat.uniforms.uGlobalOctaveMult.value = oct;
+      mat.uniforms.uGlobalRadius.value = rad;
 
-    const impactSizeBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled
-      ? 1 + contactAmount * config.interLayerContactSizeBoost
-      : 1;
-    mat.uniforms.uGlobalSize.value = size * impactSizeBoost;
+      const impactSizeBoost = config.interLayerContactFxEnabled && config.interLayerCollisionEnabled
+        ? 1 + contactAmount * config.interLayerContactSizeBoost
+        : 1;
+      mat.uniforms.uGlobalSize.value = size * impactSizeBoost;
 
-    mat.uniforms.uGravity.value = grav;
-    mat.uniforms.uViscosity.value = vis;
-    mat.uniforms.uFluidForce.value = fluid;
-    mat.uniforms.uResistance.value = resistance;
-    mat.uniforms.uMoveWithWind.value = moveWithWind;
-    mat.uniforms.uNeighborForce.value = neighborForce;
-    mat.uniforms.uCollisionMode.value = collisionMode;
-    mat.uniforms.uCollisionRadius.value = collisionRadius;
-    mat.uniforms.uRepulsion.value = repulsion;
-    mat.uniforms.uTrail.value = trail;
-    mat.uniforms.uLife.value = life;
-    mat.uniforms.uLifeSpread.value = lifeSpread;
-    mat.uniforms.uLifeSizeBoost.value = lifeSizeBoost;
-    mat.uniforms.uLifeSizeTaper.value = lifeSizeTaper;
-    mat.uniforms.uBurst.value = burst;
-    mat.uniforms.uBurstPhase.value = burstPhase;
-    mat.uniforms.uBurstMode.value = burstMode;
-    mat.uniforms.uBurstWaveform.value = burstWaveform;
-    mat.uniforms.uBurstSweepSpeed.value = burstSweepSpeed;
-    mat.uniforms.uBurstSweepTilt.value = burstSweepTilt;
-    mat.uniforms.uBurstConeWidth.value = burstConeWidth;
-    mat.uniforms.uEmitterOrbitSpeed.value = emitterOrbitSpeed;
-    mat.uniforms.uEmitterOrbitRadius.value = emitterOrbitRadius;
-    mat.uniforms.uEmitterPulseAmount.value = emitterPulseAmount;
-    mat.uniforms.uTrailDrag.value = trailDrag;
-    mat.uniforms.uTrailTurbulence.value = trailTurbulence;
-    mat.uniforms.uTrailDrift.value = trailDrift;
-    mat.uniforms.uVelocityGlow.value = velocityGlow;
-    mat.uniforms.uVelocityAlpha.value = velocityAlpha;
-    mat.uniforms.uFlickerAmount.value = flickerAmount;
-    mat.uniforms.uFlickerSpeed.value = flickerSpeed;
-    mat.uniforms.uStreak.value = streak;
-    mat.uniforms.uSpriteMode.value = spriteMode;
-    mat.uniforms.uAuxLife.value = auxLife;
-    mat.uniforms.uIsAux.value = isAux ? 1 : 0;
-    mat.uniforms.uAffectPos.value = affectPos;
-    mat.uniforms.uMouseForce.value = mouseForce;
-    mat.uniforms.uMouseRadius.value = mouseRadius;
-    mat.uniforms.uWind.value.copy(wind);
-    mat.uniforms.uSpin.value.copy(spin);
-    mat.uniforms.uBoundaryY.value = boundaryY;
-    mat.uniforms.uBoundaryEnabled.value = boundaryEnabled;
-    mat.uniforms.uBoundaryBounce.value = boundaryBounce;
+      mat.uniforms.uGravity.value = grav;
+      mat.uniforms.uViscosity.value = vis;
+      mat.uniforms.uFluidForce.value = fluid;
+      mat.uniforms.uResistance.value = resistance;
+      mat.uniforms.uMoveWithWind.value = moveWithWind;
+      mat.uniforms.uNeighborForce.value = neighborForce;
+      mat.uniforms.uCollisionMode.value = collisionMode;
+      mat.uniforms.uCollisionRadius.value = collisionRadius;
+      mat.uniforms.uRepulsion.value = repulsion;
+      mat.uniforms.uTrail.value = trail;
+      mat.uniforms.uLife.value = life;
+      mat.uniforms.uLifeSpread.value = lifeSpread;
+      mat.uniforms.uLifeSizeBoost.value = lifeSizeBoost;
+      mat.uniforms.uLifeSizeTaper.value = lifeSizeTaper;
+      mat.uniforms.uBurst.value = burst;
+      mat.uniforms.uBurstPhase.value = burstPhase;
+      mat.uniforms.uBurstMode.value = burstMode;
+      mat.uniforms.uBurstWaveform.value = burstWaveform;
+      mat.uniforms.uBurstSweepSpeed.value = burstSweepSpeed;
+      mat.uniforms.uBurstSweepTilt.value = burstSweepTilt;
+      mat.uniforms.uBurstConeWidth.value = burstConeWidth;
+      mat.uniforms.uEmitterOrbitSpeed.value = emitterOrbitSpeed;
+      mat.uniforms.uEmitterOrbitRadius.value = emitterOrbitRadius;
+      mat.uniforms.uEmitterPulseAmount.value = emitterPulseAmount;
+      mat.uniforms.uTrailDrag.value = trailDrag;
+      mat.uniforms.uTrailTurbulence.value = trailTurbulence;
+      mat.uniforms.uTrailDrift.value = trailDrift;
+      mat.uniforms.uVelocityGlow.value = velocityGlow;
+      mat.uniforms.uVelocityAlpha.value = velocityAlpha;
+      mat.uniforms.uFlickerAmount.value = flickerAmount;
+      mat.uniforms.uFlickerSpeed.value = flickerSpeed;
+      mat.uniforms.uStreak.value = streak;
+      mat.uniforms.uSpriteMode.value = spriteMode;
+      mat.uniforms.uAuxLife.value = auxLife;
+      mat.uniforms.uIsAux.value = isAux ? 1 : 0;
+      mat.uniforms.uAffectPos.value = affectPos;
+      mat.uniforms.uMouseForce.value = mouseForce;
+      mat.uniforms.uMouseRadius.value = mouseRadius;
+      mat.uniforms.uWind.value.copy(wind);
+      mat.uniforms.uSpin.value.copy(spin);
+      mat.uniforms.uBoundaryY.value = boundaryY;
+      mat.uniforms.uBoundaryEnabled.value = boundaryEnabled;
+      mat.uniforms.uBoundaryBounce.value = boundaryBounce;
+    } // end layerParamsChanged
 
-    // Inter-layer collision
+
+    // Inter-layer collision（毎フレーム更新: audioや接触量が変化するため）
     const bassInputForCollision = config.audioEnabled ? audioRef.current.bass * config.audioBeatScale : 0;
     const collisionAudioBoost = config.interLayerAudioReactive && config.audioEnabled
       ? 1 + (bassInputForCollision * config.interLayerAudioBoost)
