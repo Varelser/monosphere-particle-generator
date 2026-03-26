@@ -28,7 +28,7 @@ export function stopAudioResources(
   }
 
   refs.analyzerRef.current = null;
-  refs.audioRef.current = { bass: 0, treble: 0, pulse: 0 };
+  refs.audioRef.current = { bass: 0, treble: 0, pulse: 0, bandA: 0, bandB: 0 };
   setIsAudioActive(false);
   setConfig((prev) => ({ ...prev, audioEnabled: false }));
 }

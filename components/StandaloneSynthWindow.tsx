@@ -31,7 +31,7 @@ export const StandaloneSynthWindow: React.FC = () => {
     tone: 'success',
     message: 'Ready. This window will mirror the synth settings from the main app.',
   });
-  const [levels, setLevels] = React.useState({ bass: 0, treble: 0, pulse: 0 });
+  const [levels, setLevels] = React.useState({ bass: 0, treble: 0, pulse: 0, bandA: 0, bandB: 0 });
   const synthRef = React.useRef<SynthEngine | null>(null);
   const configRef = React.useRef(config);
   const levelsRef = React.useRef(levels);
@@ -90,6 +90,11 @@ export const StandaloneSynthWindow: React.FC = () => {
         gateThreshold: configRef.current.audioGateThreshold,
         responseCurve: configRef.current.audioResponseCurve,
         pulseDecay: configRef.current.audioPulseDecay,
+        bandALowHz: configRef.current.audioBandALowHz,
+        bandAHighHz: configRef.current.audioBandAHighHz,
+        bandBLowHz: configRef.current.audioBandBLowHz,
+        bandBHighHz: configRef.current.audioBandBHighHz,
+        sampleRate: synth.context.sampleRate,
       }, levelsRef.current);
       levelsRef.current = nextLevels;
       setLevels(nextLevels);
@@ -122,7 +127,7 @@ export const StandaloneSynthWindow: React.FC = () => {
     }
 
     setIsActive(false);
-    levelsRef.current = { bass: 0, treble: 0, pulse: 0 };
+    levelsRef.current = { bass: 0, treble: 0, pulse: 0, bandA: 0, bandB: 0 };
     setLevels(levelsRef.current);
     if (nextNotice) {
       setNotice(nextNotice);

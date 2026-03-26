@@ -9,6 +9,8 @@ export const PARTICLE_VERTEX_SHADER = `
   #define LIFE_TIME_SCALE   60.0  // 番小数（2Dライフ進行計算用のフレームスケール）
   ${PHYSICS_LOGIC}
   uniform float uTime; uniform float uOpacity; uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassSize; uniform float uAudioTrebleSize; uniform float uAudioBassAlpha; uniform float uAudioTrebleAlpha; uniform float uAudioPulse; uniform float uAudioMorph; uniform float uAudioShatter; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
+  uniform float uAudioBandAMotion; uniform float uAudioBandASize; uniform float uAudioBandAAlpha;
+  uniform float uAudioBandBMotion; uniform float uAudioBandBSize; uniform float uAudioBandBAlpha;
   uniform float uGlobalSpeed; uniform float uGlobalAmp; uniform float uGlobalNoiseScale;
     uniform float uGlobalComplexity;
   uniform float uGlobalEvolution; uniform float uGlobalFidelity; uniform float uGlobalOctaveMult;
@@ -52,7 +54,7 @@ export const PARTICLE_VERTEX_SHADER = `
     float aFreqFactor = aData2.z; float aSizeFactor = aData2.w;
     float aSpawnOffset = aData3.x; float aLifeJitter = aData3.y; float aVariant = aData3.z;
     float radius = aBaseRadiusFactor * uGlobalRadius;
-    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTrebleMotion * 3.2);
+    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTrebleMotion * 3.2 + uAudioBandAMotion * 3.2 + uAudioBandBMotion * 3.2);
     float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBassMotion * 1.35);
     float trebleJitterMix = 1.0 + uAudioTrebleMotion * 1.8;
     float freq = aFreqFactor * uGlobalFreq * trebleJitterMix;
@@ -228,7 +230,8 @@ export const PARTICLE_VERTEX_SHADER = `
       return;
     }
     float sizeScale = (uIsOrthographic > 0.5) ? 1.0 : min(2.5, 400.0 / max(1.0, dist));
-    float audioSizeBoost = 1.0 + uAudioBassSize * 1.85 + uAudioTrebleSize * 0.45 + uAudioPulse * 1.15;
+    float audioSizeBoost = 1.0 + uAudioBassSize * 1.85 + uAudioTrebleSize * 0.45 + uAudioPulse * 1.15
+      + uAudioBandASize * 1.85 + uAudioBandBSize * 0.45;
     float pSize = aSizeFactor * uGlobalSize * sizeScale * audioSizeBoost;
     float lifeSizeScale = 1.0;
     if (uLife > 0.0) {
@@ -266,7 +269,8 @@ export const PARTICLE_VERTEX_SHADER = `
     vSpriteMode = uSpriteMode;
     vVariant = aVariant;
     vBurst = clamp(uBurst, 0.0, 1.0) * (1.0 - smoothstep(0.0, 0.6, lifeProgress));
-    float audioAlphaBoost = 1.0 + uAudioBassAlpha * 0.95 + uAudioTrebleAlpha * 0.35 + uAudioPulse * 0.85;
+    float audioAlphaBoost = 1.0 + uAudioBassAlpha * 0.95 + uAudioTrebleAlpha * 0.35 + uAudioPulse * 0.85
+      + uAudioBandAAlpha * 0.95 + uAudioBandBAlpha * 0.95;
     vAlpha = uOpacity * lifeAlpha * (1.0 - smoothstep(2000.0, 5000.0, length(pos))) * (1.0 + clamp(uTrail, 0.0, 0.99) * 0.35) * audioAlphaBoost;
   }
 `;

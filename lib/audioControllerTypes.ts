@@ -1,5 +1,5 @@
 export type Notice = { tone: 'success' | 'error'; message: string };
-export type AudioLevels = { bass: number; treble: number; pulse: number };
+export type AudioLevels = { bass: number; treble: number; pulse: number; bandA: number; bandB: number };
 
 export type AnalyzerLike = Pick<AnalyserNode, 'frequencyBinCount' | 'getByteFrequencyData'> & Partial<Pick<AnalyserNode, 'fftSize' | 'getByteTimeDomainData'>>;
 

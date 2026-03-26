@@ -6,6 +6,12 @@ export type AudioAnalysisOptions = {
   gateThreshold: number;
   responseCurve: number;
   pulseDecay: number;
+  // Custom frequency band Hz ranges
+  bandALowHz: number;
+  bandAHighHz: number;
+  bandBLowHz: number;
+  bandBHighHz: number;
+  sampleRate: number;
 };
 
 export function createFakeSharedAudioAnalyzer() {
@@ -58,6 +64,19 @@ function smoothLevel(previous: number, target: number, rise: number, fall: numbe
   return previous + (target - previous) * blend;
 }
 
+function getBandByHz(
+  data: Uint8Array,
+  lowHz: number,
+  highHz: number,
+  sampleRate: number,
+  fftSize: number,
+) {
+  const nyquist = sampleRate / 2;
+  const startRatio = Math.max(0, lowHz / nyquist);
+  const endRatio = Math.min(1, highHz / nyquist);
+  return getBandStats(data, startRatio, endRatio);
+}
+
 export function createAudioLevelReader(analyzer: AnalyzerLike) {
   const frequencyData = new Uint8Array(analyzer.frequencyBinCount);
   const timeDomainData = typeof analyzer.getByteTimeDomainData === 'function'
@@ -75,6 +94,12 @@ export function createAudioLevelReader(analyzer: AnalyzerLike) {
     const presence = getBandStats(frequencyData, 0.24, 0.52);
     const brilliance = getBandStats(frequencyData, 0.52, 0.9);
     const rms = getTimeDomainRms(timeDomainData);
+
+    const fftSize = (analyzer.fftSize ?? analyzer.frequencyBinCount * 2);
+    const sampleRate = Math.max(8000, options.sampleRate);
+
+    const bandARaw = getBandByHz(frequencyData, options.bandALowHz, options.bandAHighHz, sampleRate, fftSize);
+    const bandBRaw = getBandByHz(frequencyData, options.bandBLowHz, options.bandBHighHz, sampleRate, fftSize);
 
     const nextSensitivity = Math.max(0, options.sensitivity);
     const gateThreshold = clamp01(options.gateThreshold);
@@ -107,8 +132,14 @@ export function createAudioLevelReader(analyzer: AnalyzerLike) {
 
     const gatedBassTarget = applyDynamics(bassTargetRaw);
     const gatedTrebleTarget = applyDynamics(trebleTargetRaw);
+    const gatedBandATarget = applyDynamics(clamp01(Math.max(bandARaw.average * 1.4, bandARaw.peak * 1.8) * nextSensitivity));
+    const gatedBandBTarget = applyDynamics(clamp01(Math.max(bandBRaw.average * 1.4, bandBRaw.peak * 1.8) * nextSensitivity));
+
     const smoothedBass = clamp01(smoothLevel(previousLevels.bass, gatedBassTarget, 0.28, 0.1));
     const smoothedTreble = clamp01(smoothLevel(previousLevels.treble, gatedTrebleTarget, 0.22, 0.08));
+    const smoothedBandA = clamp01(smoothLevel(previousLevels.bandA, gatedBandATarget, 0.28, 0.1));
+    const smoothedBandB = clamp01(smoothLevel(previousLevels.bandB, gatedBandBTarget, 0.22, 0.08));
+
     const pulseTarget = clamp01(
       Math.max(
         0,
@@ -121,6 +152,8 @@ export function createAudioLevelReader(analyzer: AnalyzerLike) {
       bass: smoothedBass,
       treble: smoothedTreble,
       pulse: clamp01(smoothLevel(previousLevels.pulse, pulseTarget, 0.68, pulseDecay)),
+      bandA: smoothedBandA,
+      bandB: smoothedBandB,
     };
   };
 }

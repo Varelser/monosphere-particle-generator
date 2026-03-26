@@ -19,7 +19,7 @@ type UseAudioControllerArgs = {
 export function useAudioController({ config, latestConfigRef, setConfig }: UseAudioControllerArgs) {
   const [isAudioActive, setIsAudioActive] = useState(false);
   const [audioNotice, setAudioNotice] = useState<Notice | null>(null);
-  const audioRef = useRef<AudioLevels>({ bass: 0, treble: 0, pulse: 0 });
+  const audioRef = useRef<AudioLevels>({ bass: 0, treble: 0, pulse: 0, bandA: 0, bandB: 0 });
   const analyzerRef = useRef<AnalyzerLike | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const microphoneStreamRef = useRef<MediaStream | null>(null);
@@ -32,6 +32,11 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
     gateThreshold: config.audioGateThreshold,
     responseCurve: config.audioResponseCurve,
     pulseDecay: config.audioPulseDecay,
+    bandALowHz: config.audioBandALowHz,
+    bandAHighHz: config.audioBandAHighHz,
+    bandBLowHz: config.audioBandBLowHz,
+    bandBHighHz: config.audioBandBHighHz,
+    sampleRate: 44100, // updated at runtime from AudioContext
   });
 
   const dismissAudioNotice = useCallback(() => {
@@ -207,8 +212,14 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
       gateThreshold: config.audioGateThreshold,
       responseCurve: config.audioResponseCurve,
       pulseDecay: config.audioPulseDecay,
+      bandALowHz: config.audioBandALowHz,
+      bandAHighHz: config.audioBandAHighHz,
+      bandBLowHz: config.audioBandBLowHz,
+      bandBHighHz: config.audioBandBHighHz,
+      sampleRate: audioContextRef.current?.sampleRate ?? 44100,
     };
-  }, [config.audioGateThreshold, config.audioPulseDecay, config.audioResponseCurve, config.audioSensitivity]);
+  }, [config.audioGateThreshold, config.audioPulseDecay, config.audioResponseCurve, config.audioSensitivity,
+      config.audioBandALowHz, config.audioBandAHighHz, config.audioBandBLowHz, config.audioBandBHighHz]);
 
   useEffect(() => {
     if (!isAudioActive || !analyzerRef.current) {
@@ -256,7 +267,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
 
       if (message.type === 'audio-bridge-status') {
         if (!message.active) {
-          audioRef.current = { bass: 0, treble: 0, pulse: 0 };
+          audioRef.current = { bass: 0, treble: 0, pulse: 0, bandA: 0, bandB: 0 };
         }
         setIsAudioActive(message.active);
         setConfig((prev) => ({ ...prev, audioEnabled: message.active }));
@@ -267,7 +278,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
       }
 
       if (message.type === 'audio-bridge-levels') {
-        audioRef.current = { bass: message.bass, treble: message.treble, pulse: message.pulse };
+        audioRef.current = { bass: message.bass, treble: message.treble, pulse: message.pulse, bandA: 0, bandB: 0 };
         return;
       }
 
@@ -279,7 +290,7 @@ export function useAudioController({ config, latestConfigRef, setConfig }: UseAu
       }
 
       if (message.type === 'audio-bridge-closed') {
-        audioRef.current = { bass: 0, treble: 0, pulse: 0 };
+        audioRef.current = { bass: 0, treble: 0, pulse: 0, bandA: 0, bandB: 0 };
         setIsAudioActive(false);
         setConfig((prev) => ({ ...prev, audioEnabled: false }));
         if (latestConfigRef.current.audioSourceMode === 'standalone-synth') {

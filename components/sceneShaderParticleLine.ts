@@ -21,6 +21,7 @@ export const LINE_VERTEX_SHADER = `
   uniform float uAffectPos; uniform vec2 uMouse; uniform float uMouseForce;
   uniform float uMouseRadius; uniform float uIsOrthographic;
   uniform float uAudioBassMotion; uniform float uAudioTrebleMotion; uniform float uAudioBassLine; uniform float uAudioTrebleLine; uniform float uAudioPulse; uniform float uAudioMorph; uniform float uAudioShatter; uniform float uAudioTwist; uniform float uAudioBend; uniform float uAudioWarp;
+  uniform float uAudioBandAMotion; uniform float uAudioBandBMotion;
   uniform float uInterLayerEnabled; uniform int uInterLayerColliderCount; uniform vec4 uInterLayerColliders[MAX_INTER_LAYER_COLLIDERS]; uniform float uInterLayerStrength; uniform float uInterLayerPadding;
   uniform float uConnectDistance;
   uniform float uOpacity;
@@ -75,7 +76,7 @@ export const LINE_VERTEX_SHADER = `
     float aFreqFactor = d2.z; float aSizeFactor = d2.w;
     float aVariant = d3.z;
     float radius = aBaseRadiusFactor * uGlobalRadius;
-    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTrebleMotion * 3.2);
+    float speed = aSpeedFactor * uGlobalSpeed * (1.0 + uAudioTrebleMotion * 3.2 + uAudioBandAMotion * 3.2 + uAudioBandBMotion * 3.2);
     float amp = aAmpFactor * uGlobalAmp * (1.0 + uAudioBassMotion * 1.35);
     float trebleJitterMix = 1.0 + uAudioTrebleMotion * 1.8;
     float freq = aFreqFactor * uGlobalFreq * trebleJitterMix;

@@ -93,6 +93,17 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   audioLineScale: 1.2,
   audioCameraScale: 1.15,
   audioHueShiftScale: 0,
+  // Custom Frequency Bands (default off, 0 scale = no effect)
+  audioBandALowHz: 40,
+  audioBandAHighHz: 200,
+  audioBandAMotionScale: 0,
+  audioBandASizeScale: 0,
+  audioBandAAlphaScale: 0,
+  audioBandBLowHz: 2000,
+  audioBandBHighHz: 8000,
+  audioBandBMotionScale: 0,
+  audioBandBSizeScale: 0,
+  audioBandBAlphaScale: 0,
 
   // Synth
   synthWaveform: 'sawtooth',

@@ -23,7 +23,7 @@ extend({
 });
 
 type AppSceneProps = {
-  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
+  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number; bandA: number; bandB: number }>;
   config: ParticleConfig;
   interLayerContactAmount: number;
   isPlaying: boolean;
@@ -72,7 +72,7 @@ const SceneBackgroundSync: React.FC<{ backgroundColor: ParticleConfig['backgroun
 };
 
 const CameraImpulseRig: React.FC<{
-  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
+  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number; bandA: number; bandB: number }>;
   config: ParticleConfig;
   controlsRef: React.MutableRefObject<OrbitControlsImpl | null>;
   isInteractingRef: React.MutableRefObject<boolean>;

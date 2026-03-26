@@ -171,5 +171,40 @@ export const AudioTabContent: React.FC<ControlPanelContentProps> = ({
     <Slider label="Audio -> Lines" value={config.audioLineScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioLineScale', v)} />
     <Slider label="Audio -> Camera" value={config.audioCameraScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioCameraScale', v)} />
     <Slider label="Audio -> Hue Shift" value={config.audioHueShiftScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioHueShiftScale', v)} />
+    <div className="mb-4 mt-4 rounded border border-white/10 bg-black/10 px-3 py-2 text-[10px] uppercase tracking-widest text-white/55">
+      Custom Frequency Bands
+    </div>
+    <div className="mb-4 rounded border border-cyan-400/15 bg-cyan-500/5 px-3 py-3">
+      <div className="mb-2 text-[10px] uppercase tracking-widest font-bold text-cyan-200/80">Band A</div>
+      <Slider
+        label={`Low Cutoff: ${config.audioBandALowHz >= 1000 ? (config.audioBandALowHz / 1000).toFixed(1) + ' kHz' : config.audioBandALowHz + ' Hz'}`}
+        value={config.audioBandALowHz} min={20} max={2000} step={5}
+        onChange={(v) => updateConfig('audioBandALowHz', v)}
+      />
+      <Slider
+        label={`High Cutoff: ${config.audioBandAHighHz >= 1000 ? (config.audioBandAHighHz / 1000).toFixed(1) + ' kHz' : config.audioBandAHighHz + ' Hz'}`}
+        value={config.audioBandAHighHz} min={50} max={4000} step={10}
+        onChange={(v) => updateConfig('audioBandAHighHz', v)}
+      />
+      <Slider label="Band A → Motion" value={config.audioBandAMotionScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBandAMotionScale', v)} />
+      <Slider label="Band A → Size" value={config.audioBandASizeScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBandASizeScale', v)} />
+      <Slider label="Band A → Alpha" value={config.audioBandAAlphaScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBandAAlphaScale', v)} />
+    </div>
+    <div className="mb-4 rounded border border-violet-400/15 bg-violet-500/5 px-3 py-3">
+      <div className="mb-2 text-[10px] uppercase tracking-widest font-bold text-violet-200/80">Band B</div>
+      <Slider
+        label={`Low Cutoff: ${config.audioBandBLowHz >= 1000 ? (config.audioBandBLowHz / 1000).toFixed(1) + ' kHz' : config.audioBandBLowHz + ' Hz'}`}
+        value={config.audioBandBLowHz} min={200} max={10000} step={50}
+        onChange={(v) => updateConfig('audioBandBLowHz', v)}
+      />
+      <Slider
+        label={`High Cutoff: ${config.audioBandBHighHz >= 1000 ? (config.audioBandBHighHz / 1000).toFixed(1) + ' kHz' : config.audioBandBHighHz + ' Hz'}`}
+        value={config.audioBandBHighHz} min={500} max={20000} step={100}
+        onChange={(v) => updateConfig('audioBandBHighHz', v)}
+      />
+      <Slider label="Band B → Motion" value={config.audioBandBMotionScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBandBMotionScale', v)} />
+      <Slider label="Band B → Size" value={config.audioBandBSizeScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBandBSizeScale', v)} />
+      <Slider label="Band B → Alpha" value={config.audioBandBAlphaScale} min={0} max={4} step={0.1} onChange={(v) => updateConfig('audioBandBAlphaScale', v)} />
+    </div>
   </div>
 );

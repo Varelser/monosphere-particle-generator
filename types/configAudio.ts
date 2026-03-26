@@ -26,6 +26,17 @@ export interface ParticleConfigAudio {
   audioLineScale: number;
   audioCameraScale: number;
   audioHueShiftScale: number;
+  // Custom Frequency Bands
+  audioBandALowHz: number;
+  audioBandAHighHz: number;
+  audioBandAMotionScale: number;
+  audioBandASizeScale: number;
+  audioBandAAlphaScale: number;
+  audioBandBLowHz: number;
+  audioBandBHighHz: number;
+  audioBandBMotionScale: number;
+  audioBandBSizeScale: number;
+  audioBandBAlphaScale: number;
   synthWaveform: SynthWaveform;
   synthScale: SynthScale;
   synthBaseFrequency: number;

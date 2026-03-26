@@ -222,7 +222,7 @@ export const ParticleSystem: React.FC<{
   layerIndex: 1 | 2 | 3 | 4;
   isAux?: boolean;
   auxMode?: AuxMode;
-  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number }>;
+  audioRef: React.MutableRefObject<{ bass: number; treble: number; pulse: number; bandA: number; bandB: number }>;
   isPlaying: boolean;
   contactAmount: number;
 }> = React.memo(({ config, layerIndex, isAux = false, auxMode = 'aux', audioRef, isPlaying, contactAmount }) => {
@@ -296,6 +296,13 @@ export const ParticleSystem: React.FC<{
     uAudioTrebleAlpha: { value: 0 },
     uAudioBassLine: { value: 0 },
     uAudioTrebleLine: { value: 0 },
+    // Custom frequency band uniforms
+    uAudioBandAMotion: { value: 0 },
+    uAudioBandASize: { value: 0 },
+    uAudioBandAAlpha: { value: 0 },
+    uAudioBandBMotion: { value: 0 },
+    uAudioBandBSize: { value: 0 },
+    uAudioBandBAlpha: { value: 0 },
     uAudioPulse: { value: 0 },
     uAudioMorph: { value: 0 },
     uAudioShatter: { value: 0 },
@@ -429,6 +436,15 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioTrebleAlpha.value = trebleInput * config.audioTrebleAlphaScale;
       mat.uniforms.uAudioBassLine.value = bassInput * config.audioLineScale;
       mat.uniforms.uAudioTrebleLine.value = trebleInput * config.audioLineScale;
+      // Custom frequency bands
+      const bandAInput = audioRef.current.bandA;
+      const bandBInput = audioRef.current.bandB;
+      mat.uniforms.uAudioBandAMotion.value = bandAInput * config.audioBandAMotionScale;
+      mat.uniforms.uAudioBandASize.value = bandAInput * config.audioBandASizeScale;
+      mat.uniforms.uAudioBandAAlpha.value = bandAInput * config.audioBandAAlphaScale;
+      mat.uniforms.uAudioBandBMotion.value = bandBInput * config.audioBandBMotionScale;
+      mat.uniforms.uAudioBandBSize.value = bandBInput * config.audioBandBSizeScale;
+      mat.uniforms.uAudioBandBAlpha.value = bandBInput * config.audioBandBAlphaScale;
       mat.uniforms.uAudioPulse.value = pulseInput;
       mat.uniforms.uAudioMorph.value = morphInput;
       mat.uniforms.uAudioShatter.value = shatterInput;
@@ -447,6 +463,12 @@ export const ParticleSystem: React.FC<{
       mat.uniforms.uAudioTrebleAlpha.value = 0;
       mat.uniforms.uAudioBassLine.value = 0;
       mat.uniforms.uAudioTrebleLine.value = 0;
+      mat.uniforms.uAudioBandAMotion.value = 0;
+      mat.uniforms.uAudioBandASize.value = 0;
+      mat.uniforms.uAudioBandAAlpha.value = 0;
+      mat.uniforms.uAudioBandBMotion.value = 0;
+      mat.uniforms.uAudioBandBSize.value = 0;
+      mat.uniforms.uAudioBandBAlpha.value = 0;
       mat.uniforms.uAudioPulse.value = 0;
       mat.uniforms.uAudioMorph.value = 0;
       mat.uniforms.uAudioShatter.value = 0;
