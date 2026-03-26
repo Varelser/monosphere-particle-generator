@@ -75,8 +75,10 @@ const main = async () => {
     );
 
     await setRangeValue(page, 'Analysis Sensitivity', 5);
-    await setRangeValue(page, 'Bass -> Amplitude/Size', 2);
-    await setRangeValue(page, 'Treble -> Noise/Speed', 2);
+    await setRangeValue(page, 'Bass Input Gain', 2);
+    await setRangeValue(page, 'Treble Input Gain', 2);
+    await setRangeValue(page, 'Bass -> Size', 2);
+    await setRangeValue(page, 'Treble -> Opacity', 2);
     await page.waitForTimeout(500);
 
     await page.evaluate(() => {

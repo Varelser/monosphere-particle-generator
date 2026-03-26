@@ -42,6 +42,7 @@ const main = async () => {
   const page = await context.newPage();
 
   try {
+
     await page.addInitScript(() => {
       window.__fakeAudio = { bass: 0, treble: 0 };
       window.__setFakeAudioLevels = ({ bass, treble }) => {
@@ -78,8 +79,10 @@ const main = async () => {
       { timeout: 30000 }
     );
     await setRangeValue(page, 'Mic Sensitivity', 5);
-    await setRangeValue(page, 'Bass -> Amplitude/Size', 2);
-    await setRangeValue(page, 'Treble -> Noise/Speed', 2);
+    await setRangeValue(page, 'Bass Input Gain', 2);
+    await setRangeValue(page, 'Treble Input Gain', 2);
+    await setRangeValue(page, 'Bass -> Size', 2);
+    await setRangeValue(page, 'Treble -> Opacity', 2);
     await page.waitForTimeout(800);
 
     await page.evaluate(() => {

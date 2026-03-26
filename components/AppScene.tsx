@@ -163,7 +163,7 @@ export const AppScene: React.FC<AppSceneProps> = React.memo(({
 
   return (
     <Canvas
-      gl={{ preserveDrawingBuffer: false, antialias, alpha: false, powerPreference: 'high-performance' }}
+      gl={{ preserveDrawingBuffer: true, antialias, alpha: false, powerPreference: 'high-performance' }}
       dpr={adaptiveDpr}
       onCreated={({ gl }) => {
         gl.setClearColor(new THREE.Color(config.backgroundColor));

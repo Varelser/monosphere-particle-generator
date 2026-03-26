@@ -151,6 +151,7 @@ const main = async () => {
     await clickButton(page, 'Pause');
 
     await clickButton(page, 'L2');
+    await setToggleValue(page, 'Enable Layer 2', 'On');
     await setRangeValue(page, 'Source Count', 2);
     await setRangeValue(page, 'Source Spread', 0);
     await setToggleValue(page, 'Draw Lines', 'On');
@@ -162,8 +163,10 @@ const main = async () => {
 
     await clickButton(page, 'FX');
     await setRangeValue(page, 'Mic Sensitivity', 5);
-    await setRangeValue(page, 'Bass -> Amplitude/Size', 2);
-    await setRangeValue(page, 'Treble -> Noise/Speed', 2);
+    await setRangeValue(page, 'Bass Input Gain', 2);
+    await setRangeValue(page, 'Treble Input Gain', 2);
+    await setRangeValue(page, 'Bass -> Size', 2);
+    await setRangeValue(page, 'Treble -> Opacity', 2);
     await clickButton(page, 'Start Microphone');
     await page.waitForFunction(
       () => Array.from(document.querySelectorAll('button')).some((node) => node.textContent?.includes('Microphone Active')),
