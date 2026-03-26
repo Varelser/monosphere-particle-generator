@@ -22,8 +22,9 @@ const _tmp = new THREE.Vector3();
 export const MetaballSystem: React.FC<Props> = React.memo(
   ({ config, posReadbackRef, texSize, isPlaying }) => {
 
-  const matRef = useRef<THREE.MeshPhongMaterial | null>(null);
+  const matRef = useRef<THREE.MeshStandardMaterial | null>(null);
   const mcRef  = useRef<MarchingCubes | null>(null);
+  const frameCountRef = useRef(0);
 
   // Resolution — must be integer 16..64; recreate mesh when it changes
   const resolution = Math.round(
@@ -33,13 +34,13 @@ export const MetaballSystem: React.FC<Props> = React.memo(
   // Create/recreate MarchingCubes object when resolution changes
   const mc = useMemo(() => {
     matRef.current?.dispose();
-    const mat = new THREE.MeshPhongMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(config.gpgpuMetaballColor),
       opacity: config.gpgpuMetaballOpacity,
       transparent: config.gpgpuMetaballOpacity < 1,
       side: THREE.DoubleSide,
-      shininess: 80,
-      specular: new THREE.Color(0x334466),
+      metalness: config.gpgpuMetaballMetalness,
+      roughness: config.gpgpuMetaballRoughness,
       depthWrite: config.gpgpuMetaballOpacity >= 0.99,
     });
     matRef.current = mat;
@@ -75,11 +76,19 @@ export const MetaballSystem: React.FC<Props> = React.memo(
     mat.transparent = config.gpgpuMetaballOpacity < 0.99;
     mat.depthWrite = config.gpgpuMetaballOpacity >= 0.99;
     mat.wireframe = config.gpgpuMetaballWireframe;
+    mat.metalness = config.gpgpuMetaballMetalness;
+    mat.roughness = config.gpgpuMetaballRoughness;
 
     obj.isolation = config.gpgpuMetaballIsoLevel;
     obj.scale.setScalar(config.gpgpuBounceRadius);
 
     if (!isPlaying) return;
+
+    // Frame skipping to reduce CPU load from MarchingCubes
+    frameCountRef.current += 1;
+    if (frameCountRef.current % Math.max(1, config.gpgpuMetaballUpdateSkip) !== 0) {
+      return;
+    }
 
     obj.reset();
 
@@ -91,7 +100,7 @@ export const MetaballSystem: React.FC<Props> = React.memo(
     const stride = Math.max(1, Math.floor(N / limit));
 
     const strength = config.gpgpuMetaballStrength;
-    const sub = config.gpgpuMetaballIsoLevel;
+    const sub = config.gpgpuMetaballSubtract;
 
     for (let i = 0; i < N; i += stride) {
       const bx = positions[i * 4]     * invR + 0.5;

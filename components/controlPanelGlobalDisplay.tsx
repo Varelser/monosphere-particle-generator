@@ -585,7 +585,11 @@ export const GlobalDisplaySection: React.FC<ControlPanelContentProps> = ({
                   <Slider label="Resolution" value={config.gpgpuMetaballResolution} min={16} max={48} step={2} onChange={(v) => updateConfig('gpgpuMetaballResolution', Math.round(v))} />
                   <Slider label="Blob Strength" value={config.gpgpuMetaballStrength} min={0.1} max={5} step={0.05} onChange={(v) => updateConfig('gpgpuMetaballStrength', v)} />
                   <Slider label="Iso Level" value={config.gpgpuMetaballIsoLevel} min={10} max={200} step={5} onChange={(v) => updateConfig('gpgpuMetaballIsoLevel', v)} />
+                  <Slider label="Decay (Subtract)" value={config.gpgpuMetaballSubtract} min={0} max={100} step={1} onChange={(v) => updateConfig('gpgpuMetaballSubtract', v)} />
                   <Slider label="Opacity" value={config.gpgpuMetaballOpacity} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuMetaballOpacity', v)} />
+                  <Slider label="Metalness" value={config.gpgpuMetaballMetalness} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuMetaballMetalness', v)} />
+                  <Slider label="Roughness" value={config.gpgpuMetaballRoughness} min={0} max={1} step={0.01} onChange={(v) => updateConfig('gpgpuMetaballRoughness', v)} />
+                  <Slider label="Update Skip (Frames)" value={config.gpgpuMetaballUpdateSkip} min={1} max={10} step={1} onChange={(v) => updateConfig('gpgpuMetaballUpdateSkip', Math.round(v))} />
                   <Slider label="Particle Limit" value={config.gpgpuMetaballParticleLimit} min={64} max={4096} step={64} onChange={(v) => updateConfig('gpgpuMetaballParticleLimit', v)} />
                   <div className="mt-2 flex items-center gap-3">
                     <label className="text-[10px] text-white/60 uppercase tracking-wider">Color</label>

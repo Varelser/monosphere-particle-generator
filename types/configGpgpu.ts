@@ -140,6 +140,10 @@ export interface ParticleConfigGpgpu {
   gpgpuMetaballOpacity: number;
   gpgpuMetaballWireframe: boolean;
   gpgpuMetaballParticleLimit: number;
+  gpgpuMetaballMetalness: number;
+  gpgpuMetaballRoughness: number;
+  gpgpuMetaballSubtract: number;
+  gpgpuMetaballUpdateSkip: number;
   // Ribbon Trail
   gpgpuRibbonEnabled: boolean;
   gpgpuRibbonWidth: number;

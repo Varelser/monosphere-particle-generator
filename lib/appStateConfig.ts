@@ -483,6 +483,10 @@ export const DEFAULT_CONFIG: ParticleConfig = {
   gpgpuMetaballOpacity: 0.75,
   gpgpuMetaballWireframe: false,
   gpgpuMetaballParticleLimit: 1024,
+  gpgpuMetaballMetalness: 0.5,
+  gpgpuMetaballRoughness: 0.2,
+  gpgpuMetaballSubtract: 12,
+  gpgpuMetaballUpdateSkip: 1,
   // Ribbon Trail
   gpgpuRibbonEnabled: false,
   gpgpuRibbonWidth: 4.0,
